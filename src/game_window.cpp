@@ -5,16 +5,12 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <vector>
-
-
-namespace globalConfig{
-	int win_width = 1200, win_height = 800;
-	bool dark_mode = 0;
-};
-
+#include "game_window.h"
+#include "config.h"
 
 namespace gameStat{
 	std::vector<sf::Vector2i> moves;
+	std::vector<std::vector<bool> > cells(16, std::vector<bool> (16, 0));
 	int turn_of = 0, first_turn = 0; //0 = x, 1 = O
 };
 
@@ -52,6 +48,30 @@ namespace texture{
 		clicked_undo_button[2] = {
 			sf::Texture("resources/game_screen/light/clicked_undo_button.png"),
 			sf::Texture("resources/game_screen/dark/clicked_undo_button.png")
+		},
+		normal_switch_light_dark_button[2] = {
+			sf::Texture("resources/game_screen/light/switch_to_dark.png"),
+			sf::Texture("resources/game_screen/dark/switch_to_light.png")
+		},
+		hovered_switch_light_dark_button[2] = {
+			sf::Texture("resources/game_screen/light/hovered_switch_to_dark.png"),
+			sf::Texture("resources/game_screen/dark/hovered_switch_to_light.png")
+		},
+		clicked_switch_light_dark_button[2] = {
+			sf::Texture("resources/game_screen/light/clicked_switch_to_dark.png"),
+			sf::Texture("resources/game_screen/dark/clicked_switch_to_light.png")
+		},
+		normal_settings_button[2] = {
+			sf::Texture("resources/game_screen/light/settings_button.png"),
+			sf::Texture("resources/game_screen/dark/settings_button.png")
+		},
+		hovered_settings_button[2] = {
+			sf::Texture("resources/game_screen/light/hovered_settings_button.png"),
+			sf::Texture("resources/game_screen/dark/hovered_settings_button.png")
+		},
+		clicked_settings_button[2] = {
+			sf::Texture("resources/game_screen/light/clicked_settings_button.png"),
+			sf::Texture("resources/game_screen/dark/clicked_settings_button.png")
 		};
 };
 
@@ -60,37 +80,137 @@ sf::Sprite
 	background(texture::background[globalConfig::dark_mode]),
 	x_character(texture::x_character[globalConfig::dark_mode]),
 	o_character(texture::o_character[globalConfig::dark_mode]),
-	undo_button(texture::normal_undo_button[globalConfig::dark_mode]);
+	undo_button(texture::normal_undo_button[globalConfig::dark_mode]),
+	switch_light_dark_button(texture::normal_switch_light_dark_button[globalConfig::dark_mode]),
+	settings_button(texture::normal_settings_button[globalConfig::dark_mode]);
 
 
 //-------------------CONTROL SECTION------------------------
 
-//tested by Quang
-void addAMove(sf::Vector2f pos){
-	if(!sf::FloatRect({0.f, 0.f}, {800.f, 800.f}).contains(pos)) return;
-	int _x = (int)pos.x / 50, _y = (int)pos.y / 50;
-	if(_x > 15 || _x < 0 || _y > 15 || _y < 0) return;
-	gameStat::moves.push_back(sf::Vector2i(_x, _y));
-};
+namespace events{
 
-void undoMove(){
-	if(!gameStat::moves.empty()){
-		gameStat::moves.pop_back();
+	//tested by Quang
+	void addAMove(sf::Vector2f pos){
+		
+		//if mouse is clicked...
+		
+		if(!sf::FloatRect({0.f, 0.f}, {800.f, 800.f}).contains(pos)) return;
+		int _x = (int)pos.x / 50, _y = (int)pos.y / 50;
+		if(_x > 15 || _x < 0 || _y > 15 || _y < 0) return;
+		if(gameStat::cells[_x][_y]) return;
+		gameStat::moves.push_back(sf::Vector2i(_x, _y));
+		gameStat::cells[_x][_y] = true;
 	};
+
+	//tested by Quang
+	void undoMove(sf::RenderWindow& win){
+		
+		//if mouse is clicked...
+
+		if(!undo_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win))))
+			return;
+		if(!gameStat::moves.empty()){
+			sf::Vector2i& cell = gameStat::moves[gameStat::moves.size()-1];
+			gameStat::cells[cell.x][cell.y] = false;
+			gameStat::moves.pop_back();
+		};
+	};
+
+	//tested by Quang
+	void switchLightDarkMode(sf::RenderWindow &win, bool& re_init){
+		
+		//if mouse is clicked...
+
+		if(!switch_light_dark_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win))))
+			return;
+
+		globalConfig::dark_mode = (globalConfig::dark_mode + 1) % 2;
+
+		re_init = true;
+
+	};
+
+	void openInGameSettings(sf::RenderWindow &win){
+
+		//if mouse is clicked...
+
+		if(!settings_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win))))
+			return;
+
+		std::cout << "clicked";
+
+		globalConfig::current_win = 5;
+
+	};
+
 };
 
 
 //-------------------DRAW SECTION------------------------
 
+namespace draw{
+
+	//tested by Quang
+	void drawUndoButton(sf::RenderWindow& win){
+		undo_button.setScale({90.f/globalConfig::win_width, 90.f/globalConfig::win_width});
+		undo_button.setPosition(win.mapPixelToCoords({1070, 670}));
+		if(undo_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
+			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+				undo_button.setTexture(texture::clicked_undo_button[globalConfig::dark_mode]);
+			} else{
+				undo_button.setTexture(texture::hovered_undo_button[globalConfig::dark_mode]);
+			};
+		} else{
+			undo_button.setTexture(texture::normal_undo_button[globalConfig::dark_mode]);
+		}
+		win.draw(undo_button);
+	};
+
+	//tested by Quang
+	void drawSwitchLightDarkModeButton(sf::RenderWindow& win){
+		switch_light_dark_button.setScale({90.f/globalConfig::win_width, 90.f/globalConfig::win_width});
+		switch_light_dark_button.setPosition(win.mapPixelToCoords({960, 670}));
+		if(switch_light_dark_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
+			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+				switch_light_dark_button.setTexture(texture::clicked_switch_light_dark_button[globalConfig::dark_mode]);
+			} else{
+				switch_light_dark_button.setTexture(texture::hovered_switch_light_dark_button[globalConfig::dark_mode]);
+			};
+		} else{
+			switch_light_dark_button.setTexture(texture::normal_switch_light_dark_button[globalConfig::dark_mode]);
+		}
+		win.draw(switch_light_dark_button);
+	};
+
+	//tested by Quang
+	void drawSettingsButton(sf::RenderWindow& win){
+		settings_button.setScale({90.f/globalConfig::win_width, 90.f/globalConfig::win_width});
+		settings_button.setPosition(win.mapPixelToCoords({850, 670}));
+		if(settings_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
+			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+				settings_button.setTexture(texture::clicked_settings_button[globalConfig::dark_mode]);
+			} else{
+				settings_button.setTexture(texture::hovered_settings_button[globalConfig::dark_mode]);
+			};
+		} else{
+			settings_button.setTexture(texture::normal_settings_button[globalConfig::dark_mode]);
+		}
+		win.draw(settings_button);
+	};
+
+};
+
+
+
 //tested by Quang
-void initGameScreen(bool dark = false){
+void initGameScreen(bool is_re_init = false){
 
 	caroTableView.setViewport(sf::FloatRect(
 		{40.f/globalConfig::win_width, 40.f/globalConfig::win_height}, 
 		{720.f/globalConfig::win_width, 720.f/globalConfig::win_height})
 	);
 
-	gameStat::moves.clear();
+	if(!is_re_init) gameStat::moves.clear();
 
 	caro_table.setTexture(texture::caro_table[globalConfig::dark_mode]);
 	background.setTexture(texture::background[globalConfig::dark_mode]);
@@ -114,23 +234,47 @@ void initGameScreen(bool dark = false){
 };
 
 //tested by Quang
-void loopGameScreen(sf::RenderWindow& win){
+bool loopGameScreen(sf::RenderWindow& win){
+	
+	bool re_init = false;
+
+	int delay = 0;
+
 	while(win.isOpen()){
-		
+
+		if(globalConfig::current_win != 3){
+			if(++delay == 100) return re_init;
+		} else delay = 0;
+
+		win.setSize({
+			globalConfig::win_width, 
+			globalConfig::win_height
+		});
+
 		//check for events
 		while(std::optional event = win.pollEvent()){
 			
 			// close window
-			if(event->is<sf::Event::Closed> ())
+			if(event->is<sf::Event::Closed> ()){
 				win.close();
+				globalConfig::current_win = 0;
+				re_init = false;
+			};
 
 			//draw a move
 			if(event->is<sf::Event::MouseButtonPressed> () &&
 				sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
 			{
-				addAMove(win.mapPixelToCoords(sf::Mouse::getPosition(win), caroTableView));
+				events::addAMove(win.mapPixelToCoords(sf::Mouse::getPosition(win), caroTableView));
+				events::undoMove(win);
+				events::switchLightDarkMode(win, re_init);
+				events::openInGameSettings(win);
 			};
 
+		};
+
+		if(re_init){
+			return re_init;
 		};
 
 		//draw
@@ -139,6 +283,11 @@ void loopGameScreen(sf::RenderWindow& win){
 
 		// - draw background
 		win.draw(background);
+
+		// - draw undo button
+		draw::drawUndoButton(win);
+		draw::drawSwitchLightDarkModeButton(win);
+		draw::drawSettingsButton(win);
 
 		// - draw caro table and moves
 		win.setView(caroTableView);
@@ -163,13 +312,19 @@ void loopGameScreen(sf::RenderWindow& win){
 
 		win.setView(win.getDefaultView());
 		win.display();
+
 	};
+
+	return re_init;
 };
 
 //tested by Quang
-void draw_game_screen(sf::RenderWindow& win){
-	initGameScreen();
-	loopGameScreen(win);
+void drawGameScreen(sf::RenderWindow& win){
+	bool re_init = false;
+	do{
+		initGameScreen(re_init);
+		re_init = loopGameScreen(win);
+	} while(re_init);
 };
 
 #endif

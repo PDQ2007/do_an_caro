@@ -11,7 +11,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\config.cpp" />
+    <ClCompile Include="src\different_window.cpp" />
+    <ClCompile Include="src\game_window.cpp" />
     <ClCompile Include="src\MAIN_APP.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\config.h" />
+    <ClInclude Include="src\different_window.h" />
+    <ClInclude Include="src\game_window.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
