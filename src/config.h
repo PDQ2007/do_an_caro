@@ -3,7 +3,7 @@
 
 namespace globalConfig{
 	extern unsigned int win_width, win_height;
-	extern bool dark_mode;
+	extern bool dark_mode, re_init;
 	extern int current_win; 
 	// 0 = program terminated
 	// 1 = menu
@@ -13,8 +13,10 @@ namespace globalConfig{
 	// 5 = in game settings
 
 	extern short language;
-	// 0 = English
-	// 1 = Vietnamese
+	// 0 = english
+	// 1 = vietnamese
 };
+
+void print_sth(std::wstring text);
 
 #endif
