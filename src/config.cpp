@@ -11,6 +11,10 @@ namespace globalConfig{
 	// 3 = game screen
 	// 4 = settings
 	// 5 = in game settings
+
+	short language = 0;
+	// 0 = English
+	// 1 = Vietnamese
 };
 
 #endif

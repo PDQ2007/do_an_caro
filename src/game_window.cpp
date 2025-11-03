@@ -1,4 +1,4 @@
-#ifndef GAME_WINDOW_CPP
+﻿#ifndef GAME_WINDOW_CPP
 #define GAME_WINDOW_CPP
 
 #include <SFML/Window.hpp>
@@ -83,6 +83,15 @@ sf::Sprite
 	undo_button(texture::normal_undo_button[globalConfig::dark_mode]),
 	switch_light_dark_button(texture::normal_switch_light_dark_button[globalConfig::dark_mode]),
 	settings_button(texture::normal_settings_button[globalConfig::dark_mode]);
+
+sf::Font
+	minecraft_font("resources/fonts/minecraft-f2d-v1-42.ttf");
+
+sf::Text
+	XO_turn_to_play[2] = {
+		sf::Text(minecraft_font, L"'s turn"),
+		sf::Text(minecraft_font, L"Lượt chơi của")
+	};
 
 
 //-------------------CONTROL SECTION------------------------
@@ -196,6 +205,10 @@ namespace draw{
 			settings_button.setTexture(texture::normal_settings_button[globalConfig::dark_mode]);
 		}
 		win.draw(settings_button);
+	};
+
+	void drawCurrentTurnStatus(sf::RenderWindow& win){
+		XO_turn_to_play[globalConfig::language].setCharacterSize();
 	};
 
 };
