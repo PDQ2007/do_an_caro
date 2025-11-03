@@ -72,6 +72,10 @@ namespace texture{
 		clicked_settings_button[2] = {
 			sf::Texture("resources/game_screen/light/clicked_settings_button.png"),
 			sf::Texture("resources/game_screen/dark/clicked_settings_button.png")
+		},
+		most_recent_move[2] = {
+		sf::Texture("resources/game_screen/light/the_most_recent_move.png"),
+		sf::Texture("resources/game_screen/dark/the_most_recent_move.png")
 		};
 };
 
@@ -82,14 +86,15 @@ sf::Sprite
 	o_character(texture::o_character[globalConfig::dark_mode]),
 	undo_button(texture::normal_undo_button[globalConfig::dark_mode]),
 	switch_light_dark_button(texture::normal_switch_light_dark_button[globalConfig::dark_mode]),
-	settings_button(texture::normal_settings_button[globalConfig::dark_mode]);
+	settings_button(texture::normal_settings_button[globalConfig::dark_mode]),
+	most_recent_move(texture::most_recent_move[globalConfig::dark_mode]);
 
 sf::Font
 	minecraft_font("resources/fonts/minecraft-f2d-v1-42.ttf");
 
 sf::Text
 	XO_turn_to_play[2] = {
-		sf::Text(minecraft_font, L"'s turn"),
+		sf::Text(minecraft_font, L"Turn of"),
 		sf::Text(minecraft_font, L"Lượt chơi của")
 	};
 
@@ -207,8 +212,80 @@ namespace draw{
 		win.draw(settings_button);
 	};
 
-	void drawCurrentTurnStatus(sf::RenderWindow& win){
-		XO_turn_to_play[globalConfig::language].setCharacterSize();
+	void drawTurnOfXOText(sf::RenderWindow& win){
+
+		XO_turn_to_play[globalConfig::language].setCharacterSize(25);
+		XO_turn_to_play[globalConfig::language].setPosition(win.mapPixelToCoords({850, 500}));
+		XO_turn_to_play[globalConfig::language].setOutlineThickness(3);
+
+		if(!globalConfig::dark_mode){
+			XO_turn_to_play[globalConfig::language].setFillColor(sf::Color::Black);
+			XO_turn_to_play[globalConfig::language].setOutlineColor(sf::Color::White);
+		} else{
+			XO_turn_to_play[globalConfig::language].setFillColor(sf::Color::White);
+			XO_turn_to_play[globalConfig::language].setOutlineColor(sf::Color::Black);
+		};
+		win.draw(XO_turn_to_play[globalConfig::language]);
+
+		float Size = 110.f;
+		sf::Vector2i pos = {850, 530};
+
+		if(gameStat::moves.size() % 2 == 0){
+			x_character.setPosition(win.mapPixelToCoords(pos));
+			x_character.setScale({
+				Size/texture::x_character[globalConfig::dark_mode].getSize().x,
+				Size/texture::x_character[globalConfig::dark_mode].getSize().y
+			});
+			win.draw(x_character);
+
+			//reset x, o scale for later draw
+			x_character.setScale({
+				50.f/texture::x_character[globalConfig::dark_mode].getSize().x,
+				50.f/texture::x_character[globalConfig::dark_mode].getSize().y
+			});
+
+		} else{
+			o_character.setPosition(win.mapPixelToCoords(pos));
+			o_character.setScale({
+				Size/texture::o_character[globalConfig::dark_mode].getSize().x,
+				Size/texture::o_character[globalConfig::dark_mode].getSize().y
+			});
+			win.draw(o_character);
+
+			//reset x, o scale for later draw
+			o_character.setScale({
+				50.f/texture::o_character[globalConfig::dark_mode].getSize().x,
+				50.f/texture::o_character[globalConfig::dark_mode].getSize().y
+			});
+		};
+
+	};
+
+	void drawMouseHoverIntoCells(sf::RenderWindow& win){
+		sf::RectangleShape square({40.f, 40.f});
+		if(globalConfig::dark_mode){
+			square.setFillColor(sf::Color(0, 0, 0, 150));
+		} else{
+			square.setFillColor(sf::Color(255, 255, 255, 150));
+		};
+		sf::Vector2f t = win.mapPixelToCoords(sf::Mouse::getPosition(win), caroTableView);
+		if(!sf::FloatRect({0.f,0.f}, {800.f, 800.f}).contains(t)){
+			//std::cout << "Return ";
+			return;
+		};
+		short
+			_x = static_cast<int>(t.x / 50),
+			_y = static_cast<int>(t.y / 50);
+		if(_x > 15 || _y > 15){
+			//std::cout << "Return2 ";
+			return;
+		};
+		square.setPosition({
+			static_cast<float> (50 * _x + 5),
+			static_cast<float> (50 * _y + 5)
+		});
+		win.draw(square);
+
 	};
 
 };
@@ -242,6 +319,12 @@ void initGameScreen(bool is_re_init = false){
 	o_character.setScale({
 		50.f/texture::o_character[globalConfig::dark_mode].getSize().x,
 		50.f/texture::o_character[globalConfig::dark_mode].getSize().y
+	});
+
+	most_recent_move.setTexture(texture::most_recent_move[globalConfig::dark_mode]);
+	most_recent_move.setScale({
+		50.f/texture::most_recent_move[globalConfig::dark_mode].getSize().x,
+		50.f/texture::most_recent_move[globalConfig::dark_mode].getSize().y
 	});
 
 };
@@ -302,9 +385,15 @@ bool loopGameScreen(sf::RenderWindow& win){
 		draw::drawSwitchLightDarkModeButton(win);
 		draw::drawSettingsButton(win);
 
+		// - draw players' turn status
+		draw::drawTurnOfXOText(win);
+
 		// - draw caro table and moves
 		win.setView(caroTableView);
 		win.draw(caro_table);
+
+		// - draw mouse hover into cells
+		draw::drawMouseHoverIntoCells(win);
 
 		for(int i = 0; i < gameStat::moves.size(); ++i){
 			sf::Vector2i& move = gameStat::moves[i];
@@ -321,6 +410,16 @@ bool loopGameScreen(sf::RenderWindow& win){
 					});
 				win.draw(o_character);
 			};
+		};
+
+		// - draw indication for the most recent moves
+		if(gameStat::moves.size() > 0){
+			sf::Vector2i& last = gameStat::moves[gameStat::moves.size()-1];
+			most_recent_move.setPosition({
+				static_cast<float>(50 * last.x - 2),
+				static_cast<float>(50 * last.y - 2)
+			});
+			win.draw(most_recent_move);
 		};
 
 		win.setView(win.getDefaultView());

@@ -9,7 +9,7 @@
 namespace globalConfig{
 	unsigned int win_width = 1200, win_height = 800;
 	bool dark_mode = false, re_init = false;
-	int current_win = 1; 
+	int current_win = 3; 
 	// 0 = program terminated
 	// 1 = menu
 	// 2 = play screen

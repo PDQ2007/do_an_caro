@@ -4,7 +4,7 @@
 #include "config.h"
 
 int main(){
-	sf::RenderWindow win(sf::VideoMode({1200, 800}), "SFML");
+	sf::RenderWindow win(sf::VideoMode({globalConfig::win_width, globalConfig::win_height}), "SFML");
 	//drawGameScreen(win);
 	bool is_loop = true;
 	while(is_loop){
