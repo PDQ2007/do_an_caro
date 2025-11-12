@@ -4,14 +4,31 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <string>
 #include <vector>
 #include "game_window.h"
 #include "config.h"
+#include "win_check.h"
+
+std::string intToString(int n){
+	std::string st = "";
+	do{
+		st = (char)((n % 10) + (int)'0') + st;
+		n /= 10;
+	} while(n > 0);
+	return st;
+};
 
 namespace gameStat{
+
+	bool is_win = false;
 	std::vector<sf::Vector2i> moves;
-	std::vector<std::vector<bool> > cells(16, std::vector<bool> (16, 0));
-	int turn_of = 0, first_turn = 0; //0 = x, 1 = O
+	std::vector<std::vector<char> > cells(16, std::vector<char> (16, 0));
+	// 0 = empty cells, 1 = X's cell, 2 = O's cell
+
+	int first_turn = 1; //0 = X, 1 = O
+
+	int x_score = 0, y_score = 0;
 };
 
 
@@ -74,10 +91,15 @@ namespace texture{
 			sf::Texture("resources/game_screen/dark/clicked_settings_button.png")
 		},
 		most_recent_move[2] = {
-		sf::Texture("resources/game_screen/light/the_most_recent_move.png"),
-		sf::Texture("resources/game_screen/dark/the_most_recent_move.png")
+			sf::Texture("resources/game_screen/light/the_most_recent_move.png"),
+			sf::Texture("resources/game_screen/dark/the_most_recent_move.png")
 		};
 };
+
+sf::RectangleShape 
+	rect_shape({50.f, 50.f}),
+	scoreboard({1150.f - 945.f, 630.f - 500.f}),
+	popup_box({380, 170});
 
 sf::Sprite
 	caro_table(texture::caro_table[globalConfig::dark_mode]),
@@ -95,7 +117,23 @@ sf::Font
 sf::Text
 	XO_turn_to_play[2] = {
 		sf::Text(minecraft_font, L"Turn of"),
-		sf::Text(minecraft_font, L"Lượt chơi của")
+		sf::Text(minecraft_font, L"Lượt chơi")
+	},
+	scoreboard_title[2] = {
+		sf::Text(minecraft_font, L"Scoreboard"),
+		sf::Text(minecraft_font, L"Bảng điểm")
+	},
+	XO_text[2] = {
+		sf::Text(minecraft_font, L"X"),
+		sf::Text(minecraft_font, L"O")
+	},
+	XO_score[2] = {
+		sf::Text(minecraft_font),
+		sf::Text(minecraft_font)
+	},
+	win_prompt[2] = {
+		sf::Text(minecraft_font, L" has won."),
+		sf::Text(minecraft_font, L" đã thắng."),
 	};
 
 
@@ -113,7 +151,7 @@ namespace events{
 		if(_x > 15 || _x < 0 || _y > 15 || _y < 0) return;
 		if(gameStat::cells[_x][_y]) return;
 		gameStat::moves.push_back(sf::Vector2i(_x, _y));
-		gameStat::cells[_x][_y] = true;
+		gameStat::cells[_x][_y] = ((gameStat::moves.size() + gameStat::first_turn) % 2) + 1;
 	};
 
 	//tested by Quang
@@ -125,22 +163,22 @@ namespace events{
 			return;
 		if(!gameStat::moves.empty()){
 			sf::Vector2i& cell = gameStat::moves[gameStat::moves.size()-1];
-			gameStat::cells[cell.x][cell.y] = false;
+			gameStat::cells[cell.x][cell.y] = 0;
 			gameStat::moves.pop_back();
 		};
 	};
 
 	//tested by Quang
-	void switchLightDarkMode(sf::RenderWindow &win, bool& re_init){
+	bool switchLightDarkMode(sf::RenderWindow &win){
 		
 		//if mouse is clicked...
 
 		if(!switch_light_dark_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win))))
-			return;
+			return false;
 
 		globalConfig::dark_mode = (globalConfig::dark_mode + 1) % 2;
 
-		re_init = true;
+		return true;
 
 	};
 
@@ -150,8 +188,6 @@ namespace events{
 
 		if(!settings_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win))))
 			return;
-
-		std::cout << "clicked";
 
 		globalConfig::current_win = 5;
 
@@ -163,6 +199,36 @@ namespace events{
 //-------------------DRAW SECTION------------------------
 
 namespace draw{
+
+	void drawAllMoves(sf::RenderWindow& win){
+		for(int i = 0; i < gameStat::moves.size(); ++i){
+			sf::Vector2i& move = gameStat::moves[i];
+			if((i + gameStat::first_turn) % 2 == 0){
+				x_character.setPosition({
+					static_cast<float>(50 * move.x),
+					static_cast<float>(50 * move.y)
+				});
+				win.draw(x_character);
+			} else{
+				o_character.setPosition({
+					static_cast<float>(50 * move.x),
+					static_cast<float>(50 * move.y)
+				});
+				win.draw(o_character);
+			};
+		};
+	};
+
+	void drawLastMoveMarker(sf::RenderWindow& win){
+		if(gameStat::moves.size() > 0){
+			sf::Vector2i& last = gameStat::moves[gameStat::moves.size()-1];
+			most_recent_move.setPosition({
+				static_cast<float>(50 * last.x - 2),
+				static_cast<float>(50 * last.y - 2)
+			});
+			win.draw(most_recent_move);
+		};
+	};
 
 	//tested by Quang
 	void drawUndoButton(sf::RenderWindow& win){
@@ -214,23 +280,12 @@ namespace draw{
 
 	void drawTurnOfXOText(sf::RenderWindow& win){
 
-		XO_turn_to_play[globalConfig::language].setCharacterSize(25);
-		XO_turn_to_play[globalConfig::language].setPosition(win.mapPixelToCoords({850, 500}));
-		XO_turn_to_play[globalConfig::language].setOutlineThickness(3);
-
-		if(!globalConfig::dark_mode){
-			XO_turn_to_play[globalConfig::language].setFillColor(sf::Color::Black);
-			XO_turn_to_play[globalConfig::language].setOutlineColor(sf::Color::White);
-		} else{
-			XO_turn_to_play[globalConfig::language].setFillColor(sf::Color::White);
-			XO_turn_to_play[globalConfig::language].setOutlineColor(sf::Color::Black);
-		};
 		win.draw(XO_turn_to_play[globalConfig::language]);
 
 		float Size = 110.f;
-		sf::Vector2i pos = {850, 530};
+		sf::Vector2i pos = {800, 530};
 
-		if(gameStat::moves.size() % 2 == 0){
+		if((gameStat::moves.size() + gameStat::first_turn) % 2 == 0){
 			x_character.setPosition(win.mapPixelToCoords(pos));
 			x_character.setScale({
 				Size/texture::x_character[globalConfig::dark_mode].getSize().x,
@@ -288,19 +343,64 @@ namespace draw{
 
 	};
 
+	void drawWinningIndication(sf::RenderWindow& win){
+		static unsigned short delay_flash = 0;
+		if(gameStat::moves.size() < 5) return;
+		std::vector<sf::Vector2i> won_cells = checkForWin(
+			gameStat::moves[gameStat::moves.size()-1],
+			gameStat::cells,
+			gameStat::is_win
+		);
+		if(gameStat::is_win){
+			delay_flash = (delay_flash + 1) % 1000;
+			if(delay_flash > 500) return;
+			for(sf::Vector2i i: won_cells){
+				rect_shape.setPosition({50.f * i.x, 50.f * i.y});
+				win.draw(rect_shape);
+			};
+		} else delay_flash = 0;
+	};
+
+	void drawScoreboard(sf::RenderWindow& win){
+		win.draw(scoreboard);
+		win.draw(scoreboard_title[globalConfig::language]);
+		win.draw(XO_text[0]);
+		win.draw(XO_text[1]);
+		win.draw(XO_score[0]);
+		win.draw(XO_score[1]);
+	};
+
+	void drawWinningPrompt(sf::RenderWindow& win, bool& first){
+		win.draw(popup_box);
+		if(first){
+			sf::FloatRect bounds = win_prompt[globalConfig::language].getLocalBounds();
+			win_prompt[globalConfig::language].setOrigin({bounds.size.x / 2.f, bounds.size.y / 2.f});
+			win_prompt[globalConfig::language].setString(
+				((((gameStat::moves.size() + gameStat::first_turn) % 2) == 1) ? "X" : "O")
+				+ win_prompt[globalConfig::language].getString()
+			);
+			win_prompt[globalConfig::language].setPosition({980, 330});
+			if(globalConfig::dark_mode){
+				win_prompt[globalConfig::language].setFillColor(sf::Color::White);
+			} else{
+				win_prompt[globalConfig::language].setFillColor(sf::Color::Black);
+			};
+		};
+		win.draw(win_prompt[globalConfig::language]);
+	};
 };
 
 
 
 //tested by Quang
-void initGameScreen(bool is_re_init = false){
+void initGameScreen(bool start, sf::RenderWindow& win){
 
 	caroTableView.setViewport(sf::FloatRect(
 		{40.f/globalConfig::win_width, 40.f/globalConfig::win_height}, 
 		{720.f/globalConfig::win_width, 720.f/globalConfig::win_height})
 	);
 
-	if(!is_re_init) gameStat::moves.clear();
+	if(start) gameStat::moves.clear();
 
 	caro_table.setTexture(texture::caro_table[globalConfig::dark_mode]);
 	background.setTexture(texture::background[globalConfig::dark_mode]);
@@ -327,19 +427,102 @@ void initGameScreen(bool is_re_init = false){
 		50.f/texture::most_recent_move[globalConfig::dark_mode].getSize().y
 	});
 
+	XO_turn_to_play[globalConfig::language].setCharacterSize(25);
+	XO_turn_to_play[globalConfig::language].setOutlineThickness(3);
+	sf::FloatRect bounds = XO_turn_to_play[globalConfig::language].getLocalBounds();
+	XO_turn_to_play[globalConfig::language].setOrigin({bounds.size.x / 2.f, 0});
+	XO_turn_to_play[globalConfig::language].setPosition(win.mapPixelToCoords({875, 500}));
+
+	scoreboard.setPosition({945, 500});
+	
+	scoreboard_title[globalConfig::language].setCharacterSize(25);
+	scoreboard_title[globalConfig::language].setOutlineThickness(3);
+	bounds = scoreboard_title[globalConfig::language].getLocalBounds();
+	scoreboard_title[globalConfig::language].setOrigin({bounds.size.x / 2.f, 0});
+	scoreboard_title[globalConfig::language].setPosition(win.mapPixelToCoords({1068, 500}));
+
+	XO_text[0].setCharacterSize(50);
+	XO_text[0].setOutlineThickness(3);
+	XO_text[0].setFillColor(sf::Color::Red);
+	bounds = XO_text[1].getLocalBounds();
+	XO_text[0].setOrigin({bounds.size.x / 2.f, bounds.size.y / 2.f});
+	XO_text[0].setPosition(win.mapPixelToCoords({1000, 540}));
+
+	XO_text[1].setOrigin({bounds.size.x / 2.f, bounds.size.y / 2.f});
+	XO_text[1].setCharacterSize(50);
+	XO_text[1].setPosition(win.mapPixelToCoords({1090, 540}));
+	XO_text[1].setOutlineThickness(3);
+	XO_text[1].setFillColor(sf::Color::Green);
+
+	XO_score[0].setString(intToString(gameStat::x_score));
+	XO_score[0].setOutlineThickness(3);
+	XO_score[0].setCharacterSize(30);
+	XO_score[0].setOrigin({bounds.size.x / 2.f, bounds.size.y / 2.f});
+	bounds = XO_score[0].getLocalBounds();
+	XO_score[0].setPosition(win.mapPixelToCoords({1000, 590}));
+
+	XO_score[1].setString(intToString(gameStat::y_score));
+	XO_score[1].setCharacterSize(30);
+	XO_score[1].setOrigin({bounds.size.x / 2.f, bounds.size.y / 2.f});
+	XO_score[1].setOutlineThickness(3);
+	bounds = XO_score[1].getLocalBounds();
+	XO_score[1].setPosition(win.mapPixelToCoords({1090, 590}));
+	
+	popup_box.setPosition(win.mapPixelToCoords({790, 300}));
+	
+	if(globalConfig::dark_mode){
+
+		rect_shape.setFillColor(sf::Color(255, 255, 0, 150));
+		scoreboard.setFillColor(sf::Color(0, 0, 0, 100));
+
+		XO_turn_to_play[globalConfig::language].setFillColor(sf::Color::White);
+		XO_turn_to_play[globalConfig::language].setOutlineColor(sf::Color::Black);
+
+		scoreboard_title[globalConfig::language].setFillColor(sf::Color::White);
+		scoreboard_title[globalConfig::language].setOutlineColor(sf::Color::Black);
+		
+		XO_text[0].setOutlineColor(sf::Color::Black);
+		XO_text[1].setOutlineColor(sf::Color::Black);
+
+		XO_score[0].setFillColor(sf::Color::White);
+		XO_score[1].setFillColor(sf::Color::White);
+		
+		popup_box.setFillColor(sf::Color(4, 50, 84, 150));
+
+	} else{
+
+		rect_shape.setFillColor(sf::Color(255, 0, 0, 100));
+		scoreboard.setFillColor(sf::Color(255, 255, 255, 150));
+
+		XO_turn_to_play[globalConfig::language].setFillColor(sf::Color::Black);
+		XO_turn_to_play[globalConfig::language].setOutlineColor(sf::Color::White);
+
+		scoreboard_title[globalConfig::language].setFillColor(sf::Color::Black);
+		scoreboard_title[globalConfig::language].setOutlineColor(sf::Color::White);
+
+		XO_text[0].setOutlineColor(sf::Color::White);
+		XO_text[1].setOutlineColor(sf::Color::White);
+
+		XO_score[0].setFillColor(sf::Color::Black);
+		XO_score[1].setFillColor(sf::Color::Black);
+
+		popup_box.setFillColor(sf::Color(239, 247, 7, 150));
+	};
+
 };
 
 //tested by Quang
+//return value:
+//		false -> the game_screen terminated (move to another screen);
+//		true -> re-init the game_screen.
 bool loopGameScreen(sf::RenderWindow& win){
-	
-	bool re_init = false;
 
 	int delay = 0;
 
 	while(win.isOpen()){
 
 		if(globalConfig::current_win != 3){
-			if(++delay == 100) return re_init;
+			if(++delay == 100) return false;
 		} else delay = 0;
 
 		win.setSize({
@@ -354,23 +537,21 @@ bool loopGameScreen(sf::RenderWindow& win){
 			if(event->is<sf::Event::Closed> ()){
 				win.close();
 				globalConfig::current_win = 0;
-				re_init = false;
+				return false;
 			};
 
 			//draw a move
 			if(event->is<sf::Event::MouseButtonPressed> () &&
 				sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
 			{
-				events::addAMove(win.mapPixelToCoords(sf::Mouse::getPosition(win), caroTableView));
-				events::undoMove(win);
-				events::switchLightDarkMode(win, re_init);
+				if(!gameStat::is_win){
+					events::addAMove(win.mapPixelToCoords(sf::Mouse::getPosition(win), caroTableView));
+					events::undoMove(win);
+				};
+				if(events::switchLightDarkMode(win)) return true;
 				events::openInGameSettings(win);
 			};
 
-		};
-
-		if(re_init){
-			return re_init;
 		};
 
 		//draw
@@ -379,6 +560,18 @@ bool loopGameScreen(sf::RenderWindow& win){
 
 		// - draw background
 		win.draw(background);
+		
+		// - draw scoreboard
+		draw::drawScoreboard(win);
+
+		// - draw win prompt
+		{
+			static bool first = true;
+			if(gameStat::is_win){
+				draw::drawWinningPrompt(win, first);
+				first = false;
+			} else first = true;
+		};
 
 		// - draw undo button
 		draw::drawUndoButton(win);
@@ -395,46 +588,31 @@ bool loopGameScreen(sf::RenderWindow& win){
 		// - draw mouse hover into cells
 		draw::drawMouseHoverIntoCells(win);
 
-		for(int i = 0; i < gameStat::moves.size(); ++i){
-			sf::Vector2i& move = gameStat::moves[i];
-			if(i % 2 == 0){
-				x_character.setPosition({
-					static_cast<float>(50 * move.x),
-					static_cast<float>(50 * move.y)
-				});
-				win.draw(x_character);
-			} else{
-				o_character.setPosition({
-					static_cast<float>(50 * move.x),
-					static_cast<float>(50 * move.y)
-					});
-				win.draw(o_character);
-			};
-		};
+		// - draw winning indication
+		draw::drawWinningIndication(win);
+
+		// - draw all moves onto the caro table
+		draw::drawAllMoves(win);
 
 		// - draw indication for the most recent moves
-		if(gameStat::moves.size() > 0){
-			sf::Vector2i& last = gameStat::moves[gameStat::moves.size()-1];
-			most_recent_move.setPosition({
-				static_cast<float>(50 * last.x - 2),
-				static_cast<float>(50 * last.y - 2)
-			});
-			win.draw(most_recent_move);
-		};
+		draw::drawLastMoveMarker(win);
 
 		win.setView(win.getDefaultView());
+
+		std::cout << "Mouse pos: "
+			<< sf::Mouse::getPosition(win).x << "  " << sf::Mouse::getPosition(win).y << '\n';
 		win.display();
 
 	};
 
-	return re_init;
+	return false;
 };
 
 //tested by Quang
-void drawGameScreen(sf::RenderWindow& win){
-	bool re_init = false;
+void drawGameScreen(sf::RenderWindow& win, bool start){
+	bool re_init = start;
 	do{
-		initGameScreen(re_init);
+		initGameScreen(!re_init, win);
 		re_init = loopGameScreen(win);
 	} while(re_init);
 };
