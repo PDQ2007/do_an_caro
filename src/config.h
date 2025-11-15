@@ -1,6 +1,20 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <SFML/Window.hpp>
+#include <SFML/Graphics.hpp>
+#include <thread>
+#include <filesystem>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include "templates.h"
+#include "menu_window.h"
+#include "win_check.h"
+#include "game_window.h"
+#include "different_window.h"
+
 namespace globalConfig{
 	extern unsigned int win_width, win_height;
 	extern bool dark_mode, re_init;
@@ -16,7 +30,5 @@ namespace globalConfig{
 	// 0 = english
 	// 1 = vietnamese
 };
-
-void print_sth(std::wstring text);
 
 #endif

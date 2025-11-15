@@ -1,6 +1,3 @@
-#include <SFML/Graphics.hpp>
-#include "game_window.h"
-#include "different_window.h"
 #include "config.h"
 
 int main(){
@@ -12,6 +9,10 @@ int main(){
 		switch(globalConfig::current_win){
 			case 0:
 				is_loop = false;
+				break;
+			case 1:
+				drawMenuWindow(win);
+				previous_screen = 1;
 				break;
 			case 3:
 				if(previous_screen == 5){

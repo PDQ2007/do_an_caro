@@ -30,19 +30,31 @@
     <ClCompile Include="src\win_check.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\menu_window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\templates.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\game_window.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\templates.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\different_window.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\game_window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\menu_window.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\config.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\different_window.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\win_check.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

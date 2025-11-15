@@ -6,6 +6,7 @@
 #include <string>
 #include "config.h"
 
+namespace {
 
 namespace fonts{
 	sf::Font minecraft("resources/fonts/minecraft-f2d-v1-42.ttf");
@@ -26,7 +27,7 @@ void initWindowScreen(sf::RenderWindow& win){
 void loopWindowScreen(sf::RenderWindow& win){
 	while(win.isOpen()){
 
-		if(globalConfig::current_win != 5) break;
+		if(globalConfig::current_win != 5 && globalConfig::current_win != 1) break;
 
 		win.setSize({globalConfig::win_width, globalConfig::win_height});
 
@@ -49,6 +50,8 @@ void loopWindowScreen(sf::RenderWindow& win){
 		win.draw(texts::settings);
 		win.display();
 	};
+};
+
 };
 
 void drawADifferentWindow(sf::RenderWindow& win){

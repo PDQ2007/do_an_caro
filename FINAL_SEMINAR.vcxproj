@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -15,12 +15,16 @@
     <ClCompile Include="src\different_window.cpp" />
     <ClCompile Include="src\game_window.cpp" />
     <ClCompile Include="src\MAIN_APP.cpp" />
+    <ClCompile Include="src\menu_window.cpp" />
+    <ClCompile Include="src\templates.cpp" />
     <ClCompile Include="src\win_check.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\config.h" />
     <ClInclude Include="src\different_window.h" />
     <ClInclude Include="src\game_window.h" />
+    <ClInclude Include="src\menu_window.h" />
+    <ClInclude Include="src\templates.h" />
     <ClInclude Include="src\win_check.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
