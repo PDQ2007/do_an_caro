@@ -10,9 +10,15 @@ namespace fonts{
 };
 
 namespace textures{
+	sf::Texture text_button[6] = {
+		sf::Texture("resources/menu_screen/light/normal_button.png"),
+		sf::Texture("resources/menu_screen/light/hovered_button.png"),
+		sf::Texture("resources/menu_screen/light/clicked_button.png"),
+		sf::Texture("resources/menu_screen/dark/normal_button.png"),
+		sf::Texture("resources/menu_screen/dark/hovered_button.png"),
+		sf::Texture("resources/menu_screen/dark/clicked_button.png")
+	};
 };
-
-
 
 namespace events{
 
@@ -20,8 +26,10 @@ namespace events{
 		return;
 	};
 
-	void print(){
-		std::cout << "Test\n";
+	void playButtonClicked(){
+		for(int delay = 0; delay <= 100; ++delay){
+		};
+		globalConfig::current_win = 5;
 	};
 
 };
@@ -60,43 +68,66 @@ namespace draw{
 
 	};
 
-	void playButton(sf::RenderWindow& win){
+	void playButton(
+		sf::RenderWindow& win,
+		std::optional<sf::Event>& event
+	){
 		
-		std::optional<sf::Event> event;
-		
-		static text_button play_button{
+		static sf::Sprite button(textures::text_button[0]);
+		static sf::Text text(fonts::minecraft);
+		static std::wstring strings[2] = {
+			L"Play",
+			L"Chõi"
+		};
+		static sf::Color colors[2][2] =
+		{ // Fill Colors
 			{
-				"resources/menu_screen/light/normal_button.png",
-				"resources/menu_screen/light/hovered_button.png",
-				"resources/menu_screen/light/clicked_button.png",
-				"resources/menu_screen/dark/normal_button.png",
-				"resources/menu_screen/dark/hovered_button.png",
-				"resources/menu_screen/dark/clicked_button.png"
+				sf::Color::Black,
+				sf::Color::White
 			},
-			{L"Play", L"Chõi"},
-			30,
-			{sf::Color::Black, sf::Color::White},
-			{sf::Color::White, sf::Color::Black},
-			4,
-			{0.5, 0.5},
-			fonts::minecraft,
-			{0.5, 0.5},
-			{600.f, 400.f},
-			{300.f, 100.f}
+		  // Outline Colors
+			{
+				sf::Color::White,
+				sf::Color::Black
+			}
 		};
 
-		play_button.draw(win, event);
+		static bool value;
+		value = setupTextButton(
+			true, win, button, text,
+			textures::text_button,
+			{{450, 350}, {300, 100}},
+			fonts::minecraft,
+			strings,
+			30,
+			colors[0],
+			colors[1],
+			4,
+			event
+		);
+
+		//process event
+		if(value){
+			std::thread processEvent(events::playButtonClicked);
+			processEvent.detach();
+		};
+
+		win.draw(button);
+		win.draw(text);
 		
 	};
 
+	void settingsButton(sf::RenderWindow& win){
+	}
+
 };
 
-void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& events, bool& start){
+void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start){
 	win.clear();
 
 	draw::backgroundAndLogo(win, start);
 
-	draw::playButton(win);
+	draw::playButton(win, event);
 
 	win.display();
 };
@@ -111,18 +142,18 @@ bool loopMenuWindow(sf::RenderWindow& win, bool start){
 			globalConfig::win_height
 		});
 
-		std::optional<sf::Event> events;
-		while(events = win.pollEvent()){
-			if(events->is<sf::Event::Closed> ()){
+		std::optional<sf::Event> event;
+		while(event = win.pollEvent()){
+			if(event->is<sf::Event::Closed> ()){
 				globalConfig::current_win = 0;
 				return false;
 			};
 
-			drawForEachLoop(win, events, start);
+			drawForEachLoop(win, event, start);
 
 		};
 
-		drawForEachLoop(win, events, start);
+		drawForEachLoop(win, event, start);
 
 		start = false;
 	};
