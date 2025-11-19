@@ -4,6 +4,7 @@
 #include "config.h"
 
 bool setupIconButton(
+	bool init,
 	sf::RenderWindow& win,
 	sf::Sprite& button_obj,
 	sf::Texture textures[6],
@@ -26,5 +27,7 @@ bool setupTextButton(
 	unsigned short outline_thickness,
 	std::optional<sf::Event>& event
 );
+
+void trackMousePosition(sf::RenderWindow& win);
 
 #endif

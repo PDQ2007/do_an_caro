@@ -8,8 +8,8 @@
 
 namespace globalConfig{
 	unsigned int win_width = 1200, win_height = 800;
-	bool dark_mode = true, re_init = false;
-	int current_win = 1; 
+	bool dark_mode = true, re_init = false, sound_on = false;
+	int current_win = 1, previous_win = 1;
 	// 0 = program terminated
 	// 1 = menu
 	// 2 = play screen
@@ -17,7 +17,7 @@ namespace globalConfig{
 	// 4 = settings
 	// 5 = in game settings
 
-	short language = 0;
+	short language = 1;
 	// 0 = english
 	// 1 = vietnamese
 };

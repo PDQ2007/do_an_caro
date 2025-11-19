@@ -541,8 +541,8 @@ namespace draw{
 				sf::Text(minecraft_font, L"Lưu ván chơi thành")
 			},
 			note[2] = {
-				sf::Text(minecraft_font, "Note: Using English's letters, numbers and underscore characters only."),
-				sf::Text(minecraft_font, "Lưu ý: Chỉ sử dụng các kí tự chữ cái tiếng Anh, chữ số và dấu gạch chân.")
+				sf::Text(minecraft_font, L"Note: Using English's letters, numbers and underscore characters only."),
+				sf::Text(minecraft_font, L"Lưu ý: Chỉ sử dụng các kí tự chữ cái tiếng Anh, chữ số và dấu gạch chân.")
 			};
 		
 		if(start){
@@ -596,8 +596,8 @@ namespace draw{
 		};
 		static sf::Text 
 			save[2] = {
-				sf::Text(minecraft_font, "Save"),
-				sf::Text(minecraft_font, "Lưu")
+				sf::Text(minecraft_font, L"Save"),
+				sf::Text(minecraft_font, L"Lưu")
 			};
 
 		if(start){

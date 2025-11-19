@@ -1,4 +1,4 @@
-#ifndef MENU_WINDOW_CPP
+﻿#ifndef MENU_WINDOW_CPP
 #define MENU_WINDOW_CPP
 
 #include "config.h"
@@ -27,9 +27,15 @@ namespace events{
 	};
 
 	void playButtonClicked(){
-		for(int delay = 0; delay <= 100; ++delay){
+		for(int delay = 0; delay <= 1000000; ++delay){
 		};
-		globalConfig::current_win = 5;
+		globalConfig::current_win = 2;
+	};
+
+	void settingsButtonClicked(){
+		for(int delay = 0; delay <= 1000000; ++delay){
+		};
+		globalConfig::current_win = 4;
 	};
 
 };
@@ -46,10 +52,10 @@ namespace draw{
 		win.draw(background);
 
 		static sf::Texture texture_logo("resources/menu_screen/light/logo.png");
-
 		static sf::Sprite logo(texture_logo);
 
 		if(start){
+			background.setTexture(texture_background[globalConfig::dark_mode]);
 			logo.setScale({
 				400.f / texture_logo.getSize().x,
 				400.f / texture_logo.getSize().x
@@ -77,7 +83,7 @@ namespace draw{
 		static sf::Text text(fonts::minecraft);
 		static std::wstring strings[2] = {
 			L"Play",
-			L"Ch�i"
+			L"Chơi"
 		};
 		static sf::Color colors[2][2] =
 		{ // Fill Colors
@@ -117,17 +123,70 @@ namespace draw{
 		
 	};
 
-	void settingsButton(sf::RenderWindow& win){
-	}
+	void settingsButton(
+		sf::RenderWindow& win,
+		std::optional<sf::Event>& event
+	){
+		static sf::Sprite button(textures::text_button[0]);
+		static sf::Text text(fonts::minecraft);
+		static std::wstring strings[2] = {
+			L"Settings",
+			L"Cài đặt"
+		};
+		static sf::Color colors[2][2] =
+		{ // Fill Colors
+			{
+				sf::Color::Black,
+				sf::Color::White
+			},
+			// Outline Colors
+			{
+				sf::Color::White,
+				sf::Color::Black
+			}
+		};
+
+		static bool value;
+
+		value = setupTextButton(
+			true, win, button, text,
+			textures::text_button,
+			{{450, 500}, {300, 100}},
+			fonts::minecraft,
+			strings,
+			30,
+			colors[0],
+			colors[1],
+			4,
+			event
+		);
+
+		//process event
+		if(value){
+			std::thread processEvent(events::settingsButtonClicked);
+			processEvent.detach();
+		};
+
+		win.draw(button);
+		win.draw(text);
+	};
 
 };
 
 void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start){
+	
+	win.setSize({
+		globalConfig::win_width, 
+		globalConfig::win_height
+	});
+	
 	win.clear();
 
 	draw::backgroundAndLogo(win, start);
 
 	draw::playButton(win, event);
+
+	draw::settingsButton(win, event);
 
 	win.display();
 };
@@ -136,11 +195,6 @@ bool loopMenuWindow(sf::RenderWindow& win, bool start){
 	while(win.isOpen()){
 
 		if(globalConfig::current_win != 1) return false;
-
-		win.setSize({
-			globalConfig::win_width, 
-			globalConfig::win_height
-		});
 
 		std::optional<sf::Event> event;
 		while(event = win.pollEvent()){

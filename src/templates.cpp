@@ -6,6 +6,7 @@
 #define DARK (globalConfig::dark_mode * 3)
 
 bool setupIconButton(
+	bool init,
 	sf::RenderWindow& win,
 	sf::Sprite& button_obj,
 	sf::Texture textures[6],
@@ -39,7 +40,7 @@ bool setupIconButton(
 		else change = false;
 		status = 0;
 	};
-	if(change){
+	if(change || init){
 		button_obj.setScale({
 			bounds.size.x / button_obj.getLocalBounds().size.x,
 			bounds.size.y / button_obj.getLocalBounds().size.y
@@ -72,7 +73,7 @@ bool setupTextButton(
 	std::optional<sf::Event>& event
 ){
 	static bool return_val;
-	return_val = setupIconButton(win, button_obj, textures, bounds, event);
+	return_val = setupIconButton(init, win, button_obj, textures, bounds, event);
 	if(init){
 		text_obj.setFont(text_font);
 		text_obj.setString(text_string[LANG]);
@@ -95,5 +96,14 @@ bool setupTextButton(
 #undef DARK
 #undef FL_RCT_POS
 #undef FL_RCT_SZE
+
+void trackMousePosition(sf::RenderWindow& win){
+	auto m = sf::Mouse::getPosition(win);
+	while(win.isOpen()){
+		sf::sleep(sf::milliseconds(500));
+		m = sf::Mouse::getPosition(win);
+		std::cout << "Mouse pos: " << m.x << " " << m.y << '\n';
+	};
+};
 
 #endif

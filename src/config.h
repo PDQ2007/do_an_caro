@@ -14,11 +14,13 @@
 #include "win_check.h"
 #include "game_window.h"
 #include "different_window.h"
+#include "settings_window.h"
+#include "prepare_window.h"
 
 namespace globalConfig{
 	extern unsigned int win_width, win_height;
-	extern bool dark_mode, re_init;
-	extern int current_win; 
+	extern bool dark_mode, re_init, sound_on;
+	extern int current_win, previous_win; 
 	// 0 = program terminated
 	// 1 = menu
 	// 2 = play screen
