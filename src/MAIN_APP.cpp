@@ -3,8 +3,10 @@
 int main(){
 	sf::RenderWindow win(sf::VideoMode({globalConfig::win_width, globalConfig::win_height}), "SFML");
 	
-	std::thread mouseTrack(trackMousePosition, std::ref(win));
-	mouseTrack.detach();
+	//std::thread mouseTrack(trackMousePosition, std::ref(win));
+	//mouseTrack.detach();
+
+	gameDataPackage package;
 	
 	//drawGameScreen(win);
 	bool is_loop = true;
@@ -28,29 +30,19 @@ int main(){
 				previous_screen = 1;
 				break;
 			case 2:
-				drawPrepareScreen(win, load_game_from, is_new_game);
+				package = drawPrepareScreen(win);
 				previous_screen = 2;
 				break;
 			case 3:
 				if(previous_screen == 4){
 					drawGameScreen(
 						win, false,
-						is_new_game,
-						is_multiplayer,
-						first_turn,
-						player1_name,
-						player2_name,
-						load_game_from
+						package
 					);
 				} else{
 					drawGameScreen(
 						win, true,
-						is_new_game,
-						is_multiplayer,
-						first_turn,
-						player1_name,
-						player2_name,
-						load_game_from
+						package
 					);
 				};
 				previous_screen = 3;

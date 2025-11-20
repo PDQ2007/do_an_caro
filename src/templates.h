@@ -3,6 +3,16 @@
 
 #include "config.h"
 
+struct gameDataPackage {
+	bool is_new_game, is_multiplayer;
+	int first_turn;
+	std::string
+		save_name,
+		playerX_name,
+		playerO_name;
+	std::filesystem::path load_game_from;
+};
+
 bool setupIconButton(
 	bool init,
 	sf::RenderWindow& win,
@@ -26,6 +36,30 @@ bool setupTextButton(
 	sf::Color text_outline_color[2],
 	unsigned short outline_thickness,
 	std::optional<sf::Event>& event
+);
+
+void setupInputBox(
+	bool init,
+	sf::RenderWindow& win,
+	sf::RectangleShape& box_obj,
+	sf::Text& label_text_obj,
+	sf::Text& input_text_obj,
+	sf::FloatRect bounds,
+	unsigned short box_border_thickness,
+	std::vector<sf::Color> box_fill_color,
+	std::vector<sf::Color> box_outline_color,
+	std::vector<sf::Color> box_selected_outline_color,
+	sf::Font& text_font,
+	std::vector<std::wstring> label_text_string,
+	unsigned short text_size,
+	std::vector<sf::Color> text_fill_color,
+	std::vector<sf::Color> text_outline_color,
+	unsigned short outline_thickness,
+	std::optional<sf::Event>& event,
+	std::string& input_string,
+	unsigned char max_string_length,
+	bool& isBoxSelected,
+	char& status
 );
 
 void trackMousePosition(sf::RenderWindow& win);

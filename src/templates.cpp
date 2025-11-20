@@ -97,6 +97,109 @@ bool setupTextButton(
 #undef FL_RCT_POS
 #undef FL_RCT_SZE
 
+void handleInputBox(std::string& input_str, std::optional<sf::Event>& _, unsigned char max_length, char& status){
+	auto event = _->getIf<sf::Event::TextEntered> ();
+	if(event){
+		if(('a' <= event->unicode && event->unicode <= 'z') ||
+			('A' <= event->unicode && event->unicode <= 'Z') ||
+			('0' <= event->unicode && event->unicode <= '9') ||
+			(event->unicode == '_')
+			){
+			if(input_str.size() < max_length){
+				input_str += (char)(event->unicode);
+			} else{
+				status = 'A'; // max length warning
+			};
+		} else if(event->unicode == 8){
+			input_str = input_str.substr(0, input_str.size() - 1);
+		} else{
+			// return warning when user type invalid input characters
+			status = (wchar_t)event->unicode;
+		};
+	};
+};
+
+#define DARK globalConfig::dark_mode
+
+void setupInputBox(bool init,
+	sf::RenderWindow& win,
+	sf::RectangleShape& box_obj,
+	sf::Text& label_text_obj,
+	sf::Text& input_text_obj,
+	sf::FloatRect bounds,
+	unsigned short box_border_thickness,
+	std::vector<sf::Color> box_fill_color,
+	std::vector<sf::Color> box_outline_color,
+	std::vector<sf::Color> box_selected_outline_color,
+	sf::Font& text_font,
+	std::vector<std::wstring> label_text_string,
+	unsigned short text_size,
+	std::vector<sf::Color> text_fill_color,
+	std::vector<sf::Color> text_outline_color,
+	unsigned short outline_thickness,
+	std::optional<sf::Event>& event,
+	std::string& input_string,
+	unsigned char max_string_length,
+	bool& isBoxSelected,
+	char& status
+){
+
+	//static bool isBoxSelected = false;
+
+	// set up box
+	box_obj.setSize(bounds.size);
+	box_obj.setOutlineThickness(5);
+	if(isBoxSelected){
+		box_obj.setOutlineColor(box_selected_outline_color[globalConfig::dark_mode]);
+		handleInputBox(input_string, event, max_string_length, status);
+	} else{
+		box_obj.setOutlineColor(box_outline_color[globalConfig::dark_mode]);
+	};
+	box_obj.setFillColor(box_fill_color[globalConfig::dark_mode]);
+	box_obj.setPosition(bounds.position);
+	if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+		if(bounds.contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
+			isBoxSelected = true;
+		} else{
+			isBoxSelected = false;
+		};
+	};
+
+	// set up label
+	label_text_obj.setString(label_text_string[DARK]);
+	label_text_obj.setCharacterSize(25);
+	label_text_obj.setFillColor(text_fill_color[DARK]);
+	label_text_obj.setOutlineColor(text_outline_color[DARK]);
+	label_text_obj.setOutlineThickness(3);
+	label_text_obj.setOrigin({
+		0,
+		label_text_obj.getLocalBounds().size.y
+	});
+	label_text_obj.setPosition(bounds.position);
+
+	// process event
+
+	// set up input text
+	input_text_obj.setCharacterSize(25);
+	input_text_obj.setString(input_string);
+	input_text_obj.setFont(text_font);
+	input_text_obj.setOutlineThickness(3);
+	input_text_obj.setFillColor(
+		(DARK == 1) ? (sf::Color::White) : (sf::Color::Black)
+	);
+	input_text_obj.setOutlineColor(
+		(DARK == 1) ? (sf::Color::Black) : (sf::Color::White)
+	);
+	input_text_obj.setOrigin({
+		0,
+		input_text_obj.getLocalBounds().size.y / 2.f
+		});
+	input_text_obj.setPosition({
+		box_obj.getPosition().x + 15,
+		box_obj.getPosition().y + box_obj.getSize().y / 2.f
+	});
+};
+
 void trackMousePosition(sf::RenderWindow& win){
 	auto m = sf::Mouse::getPosition(win);
 	while(win.isOpen()){

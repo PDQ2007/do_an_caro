@@ -158,7 +158,8 @@ sf::Text
 	end_option[2] = {
 		sf::Text(minecraft_font, L"End game"),
 		sf::Text(minecraft_font, L"Kết thúc")
-	};
+	},
+	exit_character(minecraft_font, "X");
 
 
 //-------------------PROCESS SECTION------------------------
@@ -183,7 +184,7 @@ namespace process {
 		fi.close();
 	};
 	void newGame(
-		unsigned short is_multiplayer,
+		short is_multiplayer,
 		std::string game_name,
 		std::string player1_name,
 		std::string player2_name,
@@ -367,6 +368,12 @@ namespace events{
 
 	void exitWithoutSave(){
 		globalConfig::current_win = 1;
+	};
+
+	void exitButton(sf::RenderWindow& win){
+		if(exit_character.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win))) && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+			gameStat::is_save = true;
+		};
 	};
 
 };
@@ -874,7 +881,6 @@ namespace draw{
 			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
 				gameStat::is_save = false;
 			} else{
-				
 				exit.setOutlineThickness(4);
 			};
 		} else{
@@ -889,8 +895,34 @@ namespace draw{
 		return is_input_box_active;
 	};
 
-	/*void drawExitButton(sf::RenderWindow){
-	};*/
+	void drawExitButton(sf::RenderWindow& win){
+		static std::wstring strings[2] = {
+			L"Exit game",
+			L"Thoát trò chơi"
+		};
+		exit_character.setString(strings[globalConfig::language]);
+		exit_character.setCharacterSize(20);
+		exit_character.setFillColor(sf::Color::Red);
+		exit_character.setOutlineThickness(3);
+		exit_character.setOrigin({
+			exit_character.getLocalBounds().size.x / 2.f,
+			exit_character.getLocalBounds().size.y / 2.f
+		});
+		exit_character.setPosition({
+			1100.f, 50.f
+		});
+		if(globalConfig::dark_mode){
+			exit_character.setOutlineColor(sf::Color::White);
+		} else{
+			exit_character.setOutlineColor(sf::Color::Black);
+		};
+		if(exit_character.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
+			exit_character.setOutlineThickness(10);
+		} else{
+			exit_character.setOutlineThickness(3);
+		};
+		win.draw(exit_character);
+	};
 
 
 };
@@ -912,7 +944,6 @@ void initGameScreen(bool start, sf::RenderWindow& win){
 		gameStat::is_save = false;
 		gameStat::x_score = 0;
 		gameStat::y_score = 0;
-		gameStat::name = "Untitled";
 		for(auto& i: gameStat::cells){
 			for(auto& j: i){
 				j = 0;
@@ -1108,9 +1139,10 @@ bool loopGameScreen(sf::RenderWindow& win){
 			if(event->is<sf::Event::MouseButtonPressed> () &&
 				sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
 			{
-				if(!gameStat::is_win){
+				if(!gameStat::is_win && !gameStat::is_save){
 					events::addAMove(win.mapPixelToCoords(sf::Mouse::getPosition(win), caroTableView));
 					events::undoMove(win);
+					events::exitButton(win);
 				} else{
 					if(!gameStat::is_save) events::continue_option(win);
 					events::end_option(win);
@@ -1134,6 +1166,9 @@ bool loopGameScreen(sf::RenderWindow& win){
 
 		// - draw background
 		win.draw(background);
+
+		// - draw an exit button
+		draw::drawExitButton(win);
 		
 		// - draw scoreboard
 		draw::drawScoreboard(win);
@@ -1197,28 +1232,24 @@ bool loopGameScreen(sf::RenderWindow& win){
 void drawGameScreen(
 	sf::RenderWindow& win,
 	bool start,
-	bool is_new_game,
-	short is_multiplayer,	// -1 = multiplayer mode
-							// 0 = singleplayer as X
-							// 1 = singleplayer as O
-	bool first_turn, // 0 for X, 1 for O
-	std::string player1_name,
-	std::string player2_name,
-	std::filesystem::path& load_game_from
+	gameDataPackage& package
 ){
 	bool re_init = !start;
 
-	if(!is_new_game){
-		gameStat::game_is_loaded = true;
-		gameStat::load_game_from = load_game_from;
-	} else{
-		process::newGame(
-			is_multiplayer,
-			"Untitled",
-			"Player1",
-			"player2",
-			first_turn
-		);
+	if(globalConfig::previous_win != 4){
+		if(!package.is_new_game){
+			gameStat::game_is_loaded = true;
+			gameStat::load_game_from = package.load_game_from;
+		} else{
+			gameStat::game_is_loaded = false;
+			process::newGame(
+				(package.is_multiplayer) ? (-1) : 0,
+				package.save_name,
+				package.playerX_name,
+				package.playerO_name,
+				package.first_turn
+			);
+		};
 	};
 
 	do{

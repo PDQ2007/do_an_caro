@@ -11,6 +11,7 @@
 #include <fstream>
 #include <algorithm>
 #include <random>
+#include <optional>
 #include "templates.h"
 #include "menu_window.h"
 #include "win_check.h"
