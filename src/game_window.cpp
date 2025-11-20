@@ -18,7 +18,21 @@ namespace gameStat{
 
 	std::string name = "Untitled";
 
-	bool is_win = false, is_save = false;
+	bool
+		is_win = false,
+		is_save = false,
+		game_is_loaded = false;
+	
+	std::filesystem::path load_game_from;
+
+	short is_multiplayer = -1;
+
+	// -1 = multiplayer mode
+	// 0 = singleplayer (player plays first)
+	// 1 = singleplayer (computer plays first)
+
+	std::string player1_name, player2_name;
+
 	std::vector<sf::Vector2i> moves;
 	std::vector<std::vector<char> > cells(16, std::vector<char> (16, 0));
 	// 0 = empty cells, 1 = X's cell, 2 = O's cell
@@ -147,6 +161,85 @@ sf::Text
 	};
 
 
+//-------------------PROCESS SECTION------------------------
+
+namespace process {
+	void loadGame(std::filesystem::path& load_from_path){
+		std::ifstream fi(load_from_path);
+		fi >> gameStat::name;
+		fi >> gameStat::is_multiplayer;
+		fi >> gameStat::player1_name;
+		fi >> gameStat::player2_name;
+		fi >> gameStat::first_turn;
+		fi >> gameStat::x_score >> gameStat::y_score;
+		unsigned int n;
+		unsigned short x, y;
+		fi >> n;
+		for(int i = 0; i < n; ++i){
+			fi >> x >> y;
+			gameStat::moves.push_back({x, y});
+			gameStat::cells[x][y] = (i + 1 + gameStat::first_turn) % 2 + 1;
+		};
+		fi.close();
+	};
+	void newGame(
+		unsigned short is_multiplayer,
+		std::string game_name,
+		std::string player1_name,
+		std::string player2_name,
+		bool first_turn
+	){
+		gameStat::name = game_name;
+		gameStat::player1_name = player1_name;
+		gameStat::player2_name = player2_name;
+		gameStat::is_multiplayer = is_multiplayer;
+		gameStat::first_turn = first_turn;
+		gameStat::moves.clear();
+		for(auto& i: gameStat::cells){
+			std::fill(i.begin(), i.end(), 0);
+		};
+		gameStat::x_score = 0;
+		gameStat::y_score = 0;
+	};
+	bool saveGame(bool& Continue){
+
+		// check if path exists
+		bool exists = std::filesystem::exists("saves/" + gameStat::name + ".txt");
+		std::filesystem::path dirPath = "saves";
+
+		// if path does not exist, create new path and proceed to save
+		if(!std::filesystem::exists(dirPath)){
+			exists = false;
+			std::filesystem::create_directory(dirPath);
+		};
+
+		// if path exists, asking to override data
+		if(exists && !Continue) return false;
+
+		// process to save
+		std::ofstream fo("saves/" + gameStat::name + ".txt");
+		
+		fo << gameStat::name << '\n';
+		fo << gameStat::is_multiplayer << '\n';
+		fo << gameStat::player1_name << '\n';
+		fo << gameStat::player2_name << '\n';
+		fo << gameStat::first_turn << '\n';
+		fo << gameStat::x_score << ' ' << gameStat::y_score << '\n';
+		if(!gameStat::is_win){
+			fo << gameStat::moves.size() << '\n';
+			for(auto i: gameStat::moves){
+				fo << i.x << ' ' << i.y << '\n';
+			};
+		} else{
+			fo << 0;
+		};
+		fo.close();
+		globalConfig::current_win = 1;
+		gameStat::is_win = false;
+		gameStat::is_save = false;
+	};
+};
+
 //-------------------CONTROL SECTION------------------------
 
 namespace events{
@@ -209,12 +302,12 @@ namespace events{
 
 	void openInGameSettings(sf::RenderWindow &win){
 
-		//if mouse is clicked...
+		//std::cout << "Settings detected \n";
 
 		if(!settings_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win))))
 			return;
 
-		globalConfig::current_win = 5;
+		globalConfig::current_win = 4;
 
 	};
 
@@ -267,34 +360,16 @@ namespace events{
 		return L'A';
 	};
 
+	// return false if failed to save game
 	bool doSaveGame(bool Continue){
-		bool exists = std::filesystem::exists("saves/" + gameStat::name + ".txt");
-		std::filesystem::path dirPath = "saves";
-		if(!std::filesystem::exists(dirPath)){
-			exists = false;
-			std::filesystem::create_directory(dirPath);
-		};
-		if(exists && !Continue) return false;
-		std::ofstream fo("saves/" + gameStat::name + ".txt");
-		fo << gameStat::name << '\n'
-			<< gameStat::x_score << ' ' << gameStat::y_score << '\n'
-			<< gameStat::first_turn << '\n';
-		if(!gameStat::is_win){
-			fo << gameStat::moves.size() << '\n';
-			for(auto i: gameStat::moves){
-				fo << i.x << ' ' << i.y << '\n';
-			};
-		} else{
-			fo << 0;
-		};
-		fo.close();
+		return process::saveGame(Continue);
+	};
+
+	void exitWithoutSave(){
 		globalConfig::current_win = 1;
-		gameStat::is_win = false;
-		gameStat::is_save = false;
 	};
 
 };
-
 
 //-------------------DRAW SECTION------------------------
 
@@ -580,7 +655,7 @@ namespace draw{
 			general_button.getLocalBounds().size.y / 2.f
 		});
 		general_button.setPosition({
-			600.f, 500.f
+			740.f, 500.f
 		});
 		win.draw(general_button);
 		if(general_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
@@ -601,6 +676,8 @@ namespace draw{
 			};
 
 		if(start){
+			save[globalConfig::language].setCharacterSize(20);
+
 			save[globalConfig::language].setOrigin({
 				save[globalConfig::language].getLocalBounds().size.x / 2.f,
 				save[globalConfig::language].getLocalBounds().size.y / 2.f
@@ -613,6 +690,8 @@ namespace draw{
 			save[globalConfig::language].setPosition({
 				_x, _y
 			});
+
+			
 		};
 
 		if(globalConfig::dark_mode){
@@ -622,6 +701,62 @@ namespace draw{
 		};
 
 		win.draw(save[globalConfig::language]);
+
+		//draw don't save button-------------------------
+		sf::Sprite general_button_2(texture::general_button[globalConfig::dark_mode]);
+		general_button_2.setScale({
+			270.f / texture::general_button[globalConfig::language].getSize().x,
+			90.f / texture::general_button[globalConfig::language].getSize().y
+		});
+		general_button_2.setOrigin({
+			general_button_2.getLocalBounds().size.x / 2.f,
+			general_button_2.getLocalBounds().size.y / 2.f
+		});
+		general_button_2.setPosition({
+			460.f, 500.f
+		});
+		win.draw(general_button_2);
+		if(general_button_2.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
+			sf::RectangleShape t_rect_2(general_button_2.getGlobalBounds().size);
+			t_rect_2.setPosition(general_button_2.getGlobalBounds().position);
+			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+				t_rect_2.setFillColor(sf::Color(5, 17, 250, 150));
+				events::exitWithoutSave();
+			} else{
+				t_rect_2.setFillColor(sf::Color(213, 250, 5, 100));
+			};
+			win.draw(t_rect_2);
+		};
+		static sf::Text 
+			dont_save[2] = {
+				sf::Text(minecraft_font, L"Don't ave"),
+				sf::Text(minecraft_font, L"Không lưu")
+			};
+
+		if(start){
+			dont_save[globalConfig::language].setCharacterSize(20);
+
+			dont_save[globalConfig::language].setOrigin({
+				dont_save[globalConfig::language].getLocalBounds().size.x / 2.f,
+				dont_save[globalConfig::language].getLocalBounds().size.y / 2.f
+			});
+
+			float 
+				_x = general_button_2.getGlobalBounds().position.x + 0.5 * general_button_2.getGlobalBounds().size.x,
+				_y = general_button_2.getGlobalBounds().position.y + 0.5 * general_button_2.getGlobalBounds().size.y;
+
+			dont_save[globalConfig::language].setPosition({
+				_x, _y
+			});
+		};
+
+		if(globalConfig::dark_mode){
+			dont_save[globalConfig::language].setFillColor(sf::Color::White);
+		} else{
+			dont_save[globalConfig::language].setFillColor(sf::Color::Black);
+		};
+
+		win.draw(dont_save[globalConfig::language]);
 
 		//draw input box------------------
 		static sf::RectangleShape input_box({600.f, 50.f});
@@ -754,6 +889,10 @@ namespace draw{
 		return is_input_box_active;
 	};
 
+	/*void drawExitButton(sf::RenderWindow){
+	};*/
+
+
 };
 
 //------------------INIT AND DRAW------------------------------
@@ -767,6 +906,7 @@ void initGameScreen(bool start, sf::RenderWindow& win){
 	);
 
 	if(start){
+		
 		gameStat::moves.clear();
 		gameStat::is_win = false;
 		gameStat::is_save = false;
@@ -778,8 +918,14 @@ void initGameScreen(bool start, sf::RenderWindow& win){
 				j = 0;
 			};
 		};
-		win_prompt[0].setString(" has won");
-		win_prompt[1].setString(" đã thắng");
+
+		if(gameStat::game_is_loaded){
+			process::loadGame(gameStat::load_game_from);
+			gameStat::game_is_loaded = true;
+		};
+
+		win_prompt[0].setString(L" has won");
+		win_prompt[1].setString(L" đã thắng");
 	};
 
 	caro_table.setTexture(texture::caro_table[globalConfig::dark_mode]);
@@ -1048,8 +1194,33 @@ bool loopGameScreen(sf::RenderWindow& win){
 };
 
 //tested by Quang
-void drawGameScreen(sf::RenderWindow& win, bool start){
+void drawGameScreen(
+	sf::RenderWindow& win,
+	bool start,
+	bool is_new_game,
+	short is_multiplayer,	// -1 = multiplayer mode
+							// 0 = singleplayer as X
+							// 1 = singleplayer as O
+	bool first_turn, // 0 for X, 1 for O
+	std::string player1_name,
+	std::string player2_name,
+	std::filesystem::path& load_game_from
+){
 	bool re_init = !start;
+
+	if(!is_new_game){
+		gameStat::game_is_loaded = true;
+		gameStat::load_game_from = load_game_from;
+	} else{
+		process::newGame(
+			is_multiplayer,
+			"Untitled",
+			"Player1",
+			"player2",
+			first_turn
+		);
+	};
+
 	do{
 		initGameScreen(!re_init, win);
 		re_init = loopGameScreen(win);

@@ -1,0 +1,7 @@
+MySaveGame2
+1
+PlayerOne
+PlayerTwo
+0
+6 3
+0

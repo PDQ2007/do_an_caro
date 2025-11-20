@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <algorithm>
+#include <random>
 #include "templates.h"
 #include "menu_window.h"
 #include "win_check.h"

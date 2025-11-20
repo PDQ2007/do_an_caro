@@ -392,6 +392,25 @@ namespace draw{
 
 	};
 
+	namespace in_game {
+		void underDevelopment(sf::RenderWindow& win){
+			static sf::Text text(fonts::minecraft);
+			text.setCharacterSize(30);
+			text.setString("Feature Under Development...");
+			text.setOrigin({
+				text.getLocalBounds().size.x / 2.f,
+				text.getLocalBounds().size.y / 2.f
+			});
+			text.setPosition({600.f, 400.f});
+			if(globalConfig::dark_mode){
+				text.setFillColor(sf::Color::White);
+			} else{
+				text.setFillColor(sf::Color::Black);
+			};
+			win.draw(text);
+		};
+	};
+
 
 };
 
@@ -410,13 +429,18 @@ void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event, boo
 
 	draw::tabs_general(win, event, re_init);
 
-	draw::tabs_inGame(win, event, re_init);
+	if(globalConfig::previous_win == 3)
+		draw::tabs_inGame(win, event, re_init);
 
 	draw::tabs_backToPreviousScreen(win, event, re_init);
 
-	draw::general::language(win, event, re_init);
-	draw::general::dark_mode(win, event, re_init);
-	draw::general::sound_on(win, event, re_init);
+	if(settings_stats::current_tab == 0){
+		draw::general::language(win, event, re_init);
+		draw::general::dark_mode(win, event, re_init);
+		draw::general::sound_on(win, event, re_init);
+	} else if(settings_stats::current_tab == 1){
+		draw::in_game::underDevelopment(win);
+	};
 
 	win.display();
 
