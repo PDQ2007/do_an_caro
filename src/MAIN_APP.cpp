@@ -3,8 +3,8 @@
 int main(){
 	sf::RenderWindow win(sf::VideoMode({globalConfig::win_width, globalConfig::win_height}), "SFML");
 	
-	//std::thread mouseTrack(trackMousePosition, std::ref(win));
-	//mouseTrack.detach();
+	std::thread mouseTrack(trackMousePosition, std::ref(win));
+	mouseTrack.detach();
 
 	gameDataPackage package;
 	

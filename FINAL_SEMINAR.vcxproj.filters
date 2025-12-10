@@ -27,7 +27,7 @@
     <ClCompile Include="src\config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\win_check.cpp">
+    <ClCompile Include="src\process.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\menu_window.cpp">
@@ -59,7 +59,7 @@
     <ClInclude Include="src\different_window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\win_check.h">
+    <ClInclude Include="src\process.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\settings_window.h">

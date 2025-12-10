@@ -5,7 +5,7 @@
 
 struct gameDataPackage {
 	bool is_new_game, is_multiplayer;
-	int first_turn;
+	int first_turn; // 0 for X, 1 for O
 	std::string
 		save_name,
 		playerX_name,
@@ -44,7 +44,7 @@ void setupInputBox(
 	sf::RectangleShape& box_obj,
 	sf::Text& label_text_obj,
 	sf::Text& input_text_obj,
-	sf::FloatRect bounds,
+	const sf::FloatRect& bounds,
 	unsigned short box_border_thickness,
 	std::vector<sf::Color> box_fill_color,
 	std::vector<sf::Color> box_outline_color,
@@ -59,7 +59,20 @@ void setupInputBox(
 	std::string& input_string,
 	unsigned char max_string_length,
 	bool& isBoxSelected,
-	char& status
+	wchar_t& status //A = max_length warning, B = empty_warning
+);
+
+void setUpTextObj(
+	const bool& init,
+	sf::RenderWindow& win,
+	sf::Text& text_obj,
+	const std::vector<sf::Color>& fill_colors,
+	const std::vector<sf::Color>& outline_colors,
+	unsigned short outline_thickness,
+	unsigned short character_size,
+	const sf::Vector2f& origin,
+	const sf::Vector2f& pos,
+	std::wstring text_strings[2]
 );
 
 void trackMousePosition(sf::RenderWindow& win);

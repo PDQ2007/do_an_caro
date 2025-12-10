@@ -135,7 +135,7 @@ namespace draw{
 			text_obj.setOutlineColor(sf::Color::White);
 		};
 		if(bounds_obj.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
-			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && event->is<sf::Event::MouseButtonPressed> ()){
+			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && event && event->is<sf::Event::MouseButtonPressed> ()){
 				return_val = true;
 			} else{
 				return_val = false;

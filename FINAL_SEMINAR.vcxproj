@@ -19,7 +19,7 @@
     <ClCompile Include="src\prepare_window.cpp" />
     <ClCompile Include="src\settings_window.cpp" />
     <ClCompile Include="src\templates.cpp" />
-    <ClCompile Include="src\win_check.cpp" />
+    <ClCompile Include="src\process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\config.h" />
@@ -29,7 +29,7 @@
     <ClInclude Include="src\prepare_window.h" />
     <ClInclude Include="src\settings_window.h" />
     <ClInclude Include="src\templates.h" />
-    <ClInclude Include="src\win_check.h" />
+    <ClInclude Include="src\process.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

@@ -14,7 +14,7 @@
 #include <optional>
 #include "templates.h"
 #include "menu_window.h"
-#include "win_check.h"
+#include "process.h"
 #include "game_window.h"
 #include "different_window.h"
 #include "settings_window.h"

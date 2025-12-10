@@ -95,6 +95,8 @@ namespace internalStats{
 		// 1 = screen for game loading
 		// 2 = screen for new game
 
+	char VERY_previous_stage = 0;
+
 	char status = 0;
 		// 0 = nothing
 		// 1 = game loaded
@@ -115,7 +117,7 @@ namespace newGameData{
 		playerO = "Unnamed_O";
 	int first_turn = 0; // 0 = X, 1 = O
 	std::filesystem::path path{"saves"};
-
+	
 	void clear(){
 		save_name = "Untitled_save";
 		playerX = "Unnamed_X";
@@ -300,7 +302,7 @@ namespace draw{
 		win.draw(background);
 	};
 
-	void goBackButton(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+	void goBackButton(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init){
 		static sf::Sprite go_back_button(textures::back_button[0]);
 		if(init){
 			go_back_button.setScale({
@@ -312,7 +314,7 @@ namespace draw{
 		static bool repeated_events = false;
 		if(go_back_button.getGlobalBounds().contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
 			if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)
-				&& event->is<sf::Event::MouseButtonPressed> ()
+				&& event && event->is<sf::Event::MouseButtonPressed> ()
 			){
 				if(repeated_events == false){
 					repeated_events = true;
@@ -320,7 +322,7 @@ namespace draw{
 					processEvent.detach();
 				};			
 			};
-			if(!event->is<sf::Event::MouseButtonPressed> ()){
+			if(event && !event->is<sf::Event::MouseButtonPressed> ()){
 				repeated_events = false;
 			};	
 			go_back_button.setTexture(textures::back_button[1]);
@@ -331,7 +333,7 @@ namespace draw{
 	};
 
 	// ------------ STAGE 0 -----------------
-	void stageZero(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+	void stageZero(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init){
 		static sf::Sprite
 			load_game_button(textures::text_button[0]),
 			new_game_button(textures::text_button[0]);
@@ -399,7 +401,7 @@ namespace draw{
 		};
 	};
 
-	// ------------ STAGE 1 -----------------
+	// ------------ STAGE 1 ----------------- (load game)
 
 	//void gameNames
 
@@ -446,7 +448,7 @@ namespace draw{
 				} else{
 					bounds.setFillColor(sf::Color(246, 214, 84, 100));
 				};
-				if(event->is<sf::Event::MouseButtonPressed> ()){
+				if(event && event->is<sf::Event::MouseButtonPressed> ()){
 					if(!event_ignore){
 						return_val = true;
 					};
@@ -534,8 +536,8 @@ namespace draw{
 
 		return return_val;
 	};
-
-	void stageOne(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+	
+	void stageOne(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init){
 		
 		process::loadListOfGames();
 
@@ -630,9 +632,9 @@ namespace draw{
 		};
 	};
 
-	// -------------- STAGE 2 -------------------
+	// -------------- STAGE 2 ------------------- (new game)
 
-	void singleplayerButton(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init, char& selected){
+	void singleplayerButton(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init, char& selected){
 		static sf::Text text_obj(fonts::minecraft);
 		static sf::Sprite button_obj(textures::text_button[0]);
 		static std::wstring strings[2] = {
@@ -669,7 +671,7 @@ namespace draw{
 		win.draw(text_obj);
 	};
 
-	void multiplayerButton(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init, char& selected){
+	void multiplayerButton(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init, char& selected){
 		static sf::Text text_obj(fonts::minecraft);
 		static sf::Sprite button_obj(textures::text_button[0]);
 		static std::wstring strings[2] = {
@@ -706,7 +708,7 @@ namespace draw{
 		win.draw(text_obj);
 	};
 
-	void singleplayerOptions(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+	void singleplayerOptions(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init){
 		static sf::Text text(fonts::minecraft);
 		text.setCharacterSize(30);
 		text.setString("Feature Under Development...");
@@ -725,7 +727,7 @@ namespace draw{
 	
 	namespace _multiplayerOptions{
 
-		void title(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+		void title(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init){
 			// draw title -------------------
 			static sf::Text title(fonts::mono_signature);
 			title.setCharacterSize(40);
@@ -752,13 +754,12 @@ namespace draw{
 			win.draw(title);
 		};
 		
-		void inputBoxes(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+		void inputBoxes(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init, wchar_t warning_list[3]){
 			
 			namespace ngd = newGameData;
 			
 			static bool selected1 = false, selected2 = false, selected3 = false;
 			// draw input box for save name -------------------
-			static char status;
 			static sf::Text
 				saveName_inputBox_label(fonts::minecraft),
 				saveName_inputBox_text(fonts::minecraft);
@@ -773,7 +774,7 @@ namespace draw{
 				saveName_inputBox_text,
 				{
 					{100, 250}, 
-				{1000, 50}
+					{1000, 50}
 				},
 				5,
 				{sf::Color(250, 222, 132), sf::Color(2, 46, 117)},
@@ -789,7 +790,7 @@ namespace draw{
 				ngd::save_name,
 				38,
 				selected1,
-				status
+				warning_list[0]
 			);
 			win.draw(saveName_inputBox_obj);
 			win.draw(saveName_inputBox_text);
@@ -827,7 +828,7 @@ namespace draw{
 				ngd::playerX,
 				20,
 				selected2,
-				status
+				warning_list[1]
 			);
 			win.draw(player1Name_inputBox_obj);
 			win.draw(player1Name_inputBox_text);
@@ -865,14 +866,15 @@ namespace draw{
 				ngd::playerO,
 				20,
 				selected3,
-				status
+				warning_list[2]
 			);
 			win.draw(player2Name_inputBox_obj);
 			win.draw(player2Name_inputBox_text);
 			win.draw(player2Name_inputBox_label);
+
 		};
 
-		void firstTurnOption(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+		void firstTurnOption(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init){
 
 			static sf::Vector2f pos = {100, 475};
 			static sf::Vector2f size;
@@ -957,7 +959,7 @@ namespace draw{
 				static bool ignore_repeated_events = false;
 				if(bounds.contains(win.mapPixelToCoords(sf::Mouse::getPosition(win)))){
 					rect_shape.setFillColor(fill_colors[globalConfig::dark_mode]);
-					if(event->is<sf::Event::MouseButtonPressed> ()){
+					if(event && event->is<sf::Event::MouseButtonPressed> ()){
 						if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)
 							&& !ignore_repeated_events){
 							ngd::first_turn = (ngd::first_turn + 1) % 2;
@@ -980,8 +982,138 @@ namespace draw{
 			drawXO(pos, size, XO_char_bounds);
 
 		};
+
+#define WARNING_SHOW_TIME 20000
+#define FLASHING_TIME 500
+		void showInputWarning(
+			sf::RenderWindow& win, 
+			std::optional<sf::Event>& event, 
+			bool& init, 
+			std::vector<int> count_warnings
+		){
+			static int count = 0;
+			if(count_warnings[0] == 0 && count_warnings[1] == 0 && count_warnings[2] == 0){
+				count = 0;
+			} else{
+				if(count < WARNING_SHOW_TIME) ++count;
+			};
+#undef WARNING_SHOW_TIME
+
+			if(count > 0){
+
+				static int count_2 = 0, thickness = 4;
+
+				count_2 = (count_2 + 1) % (2 * FLASHING_TIME);
+				if(count_2 < FLASHING_TIME){
+					thickness = 4;
+				} else{
+					thickness = 0;
+				};
+
+				static std::wstring warning_strings[3][2] = {
+					// Input text's too long!
+					{
+						L"Cannot exceed the name length limit.",
+						L"Tên không được quá dài."
+					},
+					// Empty input!
+					{
+						L"Name cannot be empty.",
+						L"Tên không được bỏ trống."
+					},
+					// Invalid character!
+					{
+						L"Character 'A' is not allowed.",
+						L"Kí tự 'A' không được chấp nhận."
+					}
+				};
+
+				short idx[3] = {0, 1, 2};
+
+				if(count_warnings[3] > 0){
+					warning_strings[2][0][11] = static_cast<wchar_t>(count_warnings[3]);
+					warning_strings[2][1][7] = static_cast<wchar_t>(count_warnings[3]);
+				};
+
+				// sort base on count_warning array
+				for(int i = 0; i < 3; ++i){
+					for(int j = i + 1; j < 3; ++j){
+						if(count_warnings[i] < count_warnings[j]){
+							std::swap(count_warnings[i], count_warnings[j]);
+							std::swap(idx[i], idx[j]);
+						};
+					};
+				};
+
+				sf::Text warnings_text_obj[3] = {
+					sf::Text(fonts::minecraft),
+					sf::Text(fonts::minecraft),
+					sf::Text(fonts::minecraft)
+				};
+
+				static std::vector<sf::Color> 
+					fill_colors = {sf::Color::Red, sf::Color::Red},
+					outline_colors = {sf::Color::Black, sf::Color::White};
+
+				setUpTextObj(
+					true,
+					win,
+					warnings_text_obj[0],
+					fill_colors,
+					outline_colors,
+					thickness,
+					20,
+					{0.5, 0.5},
+					{960, 490},
+					warning_strings[idx[0]]
+				);
+				if(count_warnings[0] > 0){
+					win.draw(warnings_text_obj[0]);
+				};
+
+#define POS(x) x.getPosition()
+#define SPACING 40
+
+				
+				setUpTextObj(
+					true,
+					win,
+					warnings_text_obj[1],
+					fill_colors,
+					outline_colors,
+					thickness,
+					20,
+					{0.5, 0.5},
+					{POS(warnings_text_obj[0]).x, POS(warnings_text_obj[0]).y + SPACING},
+					warning_strings[idx[1]]
+				);
+				if(count_warnings[1] > 0){
+					win.draw(warnings_text_obj[1]);
+				};
+
+				setUpTextObj(
+					true,
+					win,
+					warnings_text_obj[2],
+					fill_colors,
+					outline_colors,
+					thickness,
+					20,
+					{0.5, 0.5},
+					{POS(warnings_text_obj[1]).x, POS(warnings_text_obj[1]).y + SPACING},
+					warning_strings[idx[2]]
+				);
+				if(count_warnings[2] > 0){
+					win.draw(warnings_text_obj[2]);
+				};
+			};
+
+#undef POS
+#undef SPACING
+
+		};
 		
-		void startGameButton(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+		void startGameButton(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init, bool warning){
 			
 			namespace ngd = newGameData;
 			
@@ -1012,7 +1144,7 @@ namespace draw{
 				5,
 				event
 			);
-			if(is_event){
+			if(!warning && is_event){
 				ngd::is_new_game = true;
 				internalStats::status = 2;
 			};
@@ -1022,15 +1154,77 @@ namespace draw{
 
 };
 
+
 	void multiplayerOptions(sf::RenderWindow& win, std::optional<sf::Event> event, bool& init){
+
+		wchar_t warning_list[3] = {L'0', L'0', L'0'};
 
 		_multiplayerOptions::title(win, event, init);
 
-		_multiplayerOptions::inputBoxes(win, event, init);
+		_multiplayerOptions::inputBoxes(win, event, init, warning_list);
+
+#define APPEAR_TIME 2000
+		auto warningProcess = [](wchar_t warning_list[3]) -> std::vector<int> {
+			//0 = "Max length exceeded", 1 = "Empty string", 2 = "Character not allowed"
+
+			auto isWarning = [&warning_list](const wchar_t& warning_character) -> bool {
+				//std::wcout << "Warning lists (1): " << warning_list[0] << ' ' << warning_list[1] << ' ' << warning_list[2] << '\n';
+				return ((warning_list[0] == warning_character)
+						|| (warning_list[1] == warning_character)
+						|| (warning_list[2] == warning_character));
+			};
+
+			auto invalid_character = [&warning_list]() -> int {
+				for(int i = 0; i < 3; ++i){
+					//std::wcout << "Warning lists (2): " << warning_list[0] << ' ' << warning_list[1] << ' ' << warning_list[2] << '\n';
+					if(warning_list[i] != L'A' && warning_list[i] != L'B' && warning_list[i] != L'0'){
+						//std::wcout << "-> RETURN " << i <<  ' ' << static_cast<int>(warning_list[i]) << ' ' << warning_list[i] << '\n';
+						return static_cast<int>(warning_list[i]);
+					};
+				};
+				//std::wcout << "-> RETURN NOTHING\n";
+				return 0;
+			};
+
+			static int count[3] = {0, 0, 0};
+			static bool ignore_repeated_warnings = false;
+			if(isWarning('A')){
+				count[0] = APPEAR_TIME + 1;
+			};
+			if(isWarning('B')){
+				count[1] = APPEAR_TIME + 1;
+			};
+			if((warning_list[0] != '0' || warning_list[1] != '0' || warning_list[2] != '0') 
+				&& !isWarning('B') && !isWarning('A'))
+			{
+				count[2] = APPEAR_TIME + 1;
+			};
+
+#define DEC_UNTIL_ZERO(x) (x = (--x >= 0) ? x : 0)
+
+			DEC_UNTIL_ZERO(count[0]);
+			DEC_UNTIL_ZERO(count[1]);
+			DEC_UNTIL_ZERO(count[2]);
+
+			return {count[0], count[1], count[2], invalid_character()};
+
+#undef DEC_UNTIL_ZERO
+
+		};
+		// -> std::vector<int> (3)
+		// return to &warning 1 if there is any warning, otherwise return 0.
+
+		auto isAnyInputEmpty = [&warning_list]() -> bool{
+			namespace ngd = newGameData;
+			if(ngd::save_name.size() == 0 || ngd::playerO.size() == 0 || ngd::playerX.size() == 0) return true;
+			return false;
+		};
 
 		_multiplayerOptions::firstTurnOption(win, event, init);
+
+		_multiplayerOptions::showInputWarning(win, event, init, warningProcess(warning_list));
 		
-		_multiplayerOptions::startGameButton(win, event, init);
+		_multiplayerOptions::startGameButton(win, event, init, isAnyInputEmpty());
 
 	};
 	
@@ -1040,6 +1234,8 @@ namespace draw{
 		// 0 = nothing
 		// 1 = singleplayer
 		// 2 = multiplayer
+
+		if(internalStats::stage != internalStats::VERY_previous_stage) selected = 0;
 		
 		singleplayerButton(win, event, init, selected);
 		multiplayerButton(win, event, init, selected);
@@ -1056,6 +1252,8 @@ namespace draw{
 };
 
 void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event, bool init){
+
+	static bool stage_change = false;
 
 	win.setSize({
 		globalConfig::win_width,
@@ -1082,6 +1280,14 @@ void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event, boo
 	};
 
 	win.display();
+
+	if(internalStats::stage != internalStats::VERY_previous_stage && !stage_change){
+		stage_change = true;
+	} else{
+		stage_change = false;
+		internalStats::VERY_previous_stage = internalStats::stage;
+
+	};
 
 };
 

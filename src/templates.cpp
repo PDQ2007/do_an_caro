@@ -97,7 +97,16 @@ bool setupTextButton(
 #undef FL_RCT_POS
 #undef FL_RCT_SZE
 
-void handleInputBox(std::string& input_str, std::optional<sf::Event>& _, unsigned char max_length, char& status){
+void handleInputBox(std::string& input_str, std::optional<sf::Event>& _, unsigned char max_length, wchar_t& status){
+	if(!_){
+		if(input_str.size() == 0){
+			if(input_str.size() == 0) status = 'B'; //empty string warning
+		};
+		return;
+	};
+	if(input_str.size() == 0){
+		if(input_str.size() == 0) status = 'B'; //empty string warning
+	};
 	auto event = _->getIf<sf::Event::TextEntered> ();
 	if(event){
 		if(('a' <= event->unicode && event->unicode <= 'z') ||
@@ -107,6 +116,7 @@ void handleInputBox(std::string& input_str, std::optional<sf::Event>& _, unsigne
 			){
 			if(input_str.size() < max_length){
 				input_str += (char)(event->unicode);
+				status = '0'; //valid input
 			} else{
 				status = 'A'; // max length warning
 			};
@@ -115,8 +125,10 @@ void handleInputBox(std::string& input_str, std::optional<sf::Event>& _, unsigne
 		} else{
 			// return warning when user type invalid input characters
 			status = (wchar_t)event->unicode;
+			//std::wcout << "HANDLE-INPUT-BOX: " << (wchar_t)event->unicode << ' ' << event->unicode << "======\n";
 		};
 	};
+	
 };
 
 #define DARK globalConfig::dark_mode
@@ -126,7 +138,7 @@ void setupInputBox(bool init,
 	sf::RectangleShape& box_obj,
 	sf::Text& label_text_obj,
 	sf::Text& input_text_obj,
-	sf::FloatRect bounds,
+	const sf::FloatRect& bounds,
 	unsigned short box_border_thickness,
 	std::vector<sf::Color> box_fill_color,
 	std::vector<sf::Color> box_outline_color,
@@ -141,7 +153,7 @@ void setupInputBox(bool init,
 	std::string& input_string,
 	unsigned char max_string_length,
 	bool& isBoxSelected,
-	char& status
+	wchar_t& status
 ){
 
 	//static bool isBoxSelected = false;
@@ -198,6 +210,33 @@ void setupInputBox(bool init,
 		box_obj.getPosition().x + 15,
 		box_obj.getPosition().y + box_obj.getSize().y / 2.f
 	});
+	//std::wcout << status << ' ';
+};
+
+void setUpTextObj(
+	const bool& init,
+	sf::RenderWindow& win,
+	sf::Text& text_obj,
+	const std::vector<sf::Color>& fill_colors,
+	const std::vector<sf::Color>& outline_colors,
+	unsigned short outline_thickness,
+	unsigned short character_size,
+	const sf::Vector2f& origin,
+	const sf::Vector2f& pos,
+	std::wstring text_strings[2]
+){
+	if(init){
+		text_obj.setCharacterSize(character_size);
+		text_obj.setString(text_strings[globalConfig::language]);
+		text_obj.setFillColor(fill_colors[globalConfig::dark_mode]);
+		text_obj.setOutlineColor(outline_colors[globalConfig::dark_mode]);
+		text_obj.setOutlineThickness(outline_thickness);
+		text_obj.setOrigin({
+			origin.x * text_obj.getLocalBounds().size.x,
+			origin.y * text_obj.getLocalBounds().size.y
+		});
+		text_obj.setPosition(pos);
+	};
 };
 
 void trackMousePosition(sf::RenderWindow& win){
