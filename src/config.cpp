@@ -5,6 +5,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <string>
+#include "config.h"
 
 namespace globalConfig{
 	unsigned int win_width = 1200, win_height = 800;
@@ -20,6 +21,8 @@ namespace globalConfig{
 	short language = 1;
 	// 0 = english
 	// 1 = vietnamese
+
+	gameDataPackage current_package;
 };
 
 void print_sth(std::wstring text){

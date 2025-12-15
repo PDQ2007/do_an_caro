@@ -71,10 +71,13 @@ namespace textures{
 };
 
 namespace gameStats{
+
+	std::mutex movesMutex;
+	char difficulty = 0; // 0 = eazy, 1 = medium, 2 = hard
 	std::wstring is_load_game_success; //"success" for success, otherwise store the content of the error.
 	gameDataPackage saveInfo;
 	unsigned int x_score, o_score;
-	std::vector<sf::Vector2i> moves;
+	std::vector<sf::Vector2i> moves, next_moves;
 	std::vector<std::vector<short> > cells;
 
 	enum CURRENT_STATE_ENUM{
@@ -96,12 +99,12 @@ namespace gameStats{
 namespace events{
 
 	void decrease_one_by_every(int miliseconds, int& value, int& confirm_timer){
-		while(value > 0){
+		while(value > 0 && gameStats::current_stage == gameStats::SAVING){
 			std::this_thread::sleep_for(std::chrono::milliseconds(miliseconds));
 			--value;
 		};
 		confirm_timer = 8;
-		while(confirm_timer > 0){
+		while(confirm_timer > 0 && gameStats::current_stage == gameStats::SAVING){
 			std::this_thread::sleep_for(std::chrono::milliseconds(miliseconds));
 			--confirm_timer;
 		};
@@ -109,10 +112,25 @@ namespace events{
 	};
 
 	void undoMove(){
+
+		auto popMove = [](){
+			auto& last_move = gameStats::moves[gameStats::moves.size()-1];
+			gameStats::cells[last_move.x][last_move.y] = 0;
+			gameStats::moves.pop_back();
+		};
+
 		if(gameStats::moves.size() == 0) return;
-		auto& last_move = gameStats::moves[gameStats::moves.size()-1];
-		gameStats::cells[last_move.x][last_move.y] = 0;
-		gameStats::moves.pop_back();
+		if(gameStats::saveInfo.is_multiplayer){	
+			popMove();
+		} else{
+			if((gameStats::moves.size() + gameStats::saveInfo.first_turn + gameStats::saveInfo.playerAs) % 2 == 1){
+				kill_bot();
+				popMove();
+			} else{
+				popMove();
+				popMove();
+			};
+		};
 	};
 
 	void lightDark(){
@@ -120,6 +138,7 @@ namespace events{
 	};
 
 	void settingsButton(){
+		globalConfig::current_package = gameStats::saveInfo; 
 		globalConfig::current_win = 4;
 	};
 
@@ -133,6 +152,11 @@ namespace events{
 	};
 
 	void addAMove(const sf::Vector2i& move){
+		if(!gameStats::saveInfo.is_multiplayer
+			&& (gameStats::moves.size() + gameStats::saveInfo.first_turn + gameStats::saveInfo.playerAs) % 2 == 1)
+		{
+			return;
+		};
 		if(gameStats::cells[move.x][move.y] != 0) return;
 		gameStats::moves.push_back(move);
 		gameStats::cells[move.x][move.y] = (gameStats::moves.size() + 1 + gameStats::saveInfo.first_turn) % 2 + 1;
@@ -179,6 +203,26 @@ namespace events{
 		};
 		globalConfig::current_win = 1;
 		return true;
+	};
+
+	void callMachineToPlay(){
+		if(gameStats::saveInfo.is_multiplayer) return;
+		static bool ignore_repeated_calls = false;
+		if((gameStats::moves.size() + gameStats::saveInfo.first_turn + gameStats::saveInfo.playerAs) % 2 == 0
+			|| (gameStats::current_stage == gameStats::WINNING) || gameStats::current_stage == gameStats::DRAW)
+			ignore_repeated_calls = false;
+		else if(!ignore_repeated_calls){
+			ignore_repeated_calls = true;
+			std::thread call_bot(
+				bot_playing,
+				(gameStats::saveInfo.playerAs) ? X : O,
+				(gameStats::saveInfo.first_turn) ? O : X,
+				std::ref(gameStats::moves),
+				std::ref(gameStats::cells),
+				gameStats::difficulty + 1
+			);
+			call_bot.detach();
+		};
 	};
 
 };
@@ -320,6 +364,26 @@ namespace draw{
 			win.draw(most_recent_move);
 		};
 
+		void botCalculationIndication(sf::RenderWindow& win){
+			if(!gameStats::saveInfo.is_multiplayer){
+				static sf::RectangleShape rect({50, 50});
+				rect.setFillColor(
+					(globalConfig::dark_mode)
+					? sf::Color(0, 0, 0, 100)
+					: sf::Color(255, 255, 255, 100)
+				);
+				std::vector<sf::Vector2i> t_next_move;
+				{
+					std::lock_guard<std::mutex> lock(gameStats::movesMutex);
+					t_next_move = gameStats::next_moves;
+				};
+				for(auto i: t_next_move){
+					rect.setPosition({static_cast<float> (50*i.x), static_cast<float> (50*i.y)});
+					win.draw(rect);
+				};
+			};
+		};
+
 		// draw hover effect + handle user's clicks
 		void hoverEffect(sf::RenderWindow& win, std::optional<sf::Event>& event){
 			static sf::RectangleShape fill_rect({50.f, 50.f});
@@ -386,9 +450,9 @@ namespace draw{
 				};
 			};
 			if(is_win){
-
+				kill_bot();
 				if(!ignore_repeated_counts){
-					if((gameStats::moves.size() + 1 + gameStats::saveInfo.first_turn) % 2){
+					if((gameStats::moves.size() + gameStats::saveInfo.first_turn) % 2){
 						++gameStats::x_score;
 					} else{
 						++gameStats::o_score;
@@ -411,6 +475,7 @@ namespace draw{
 				};
 				delay = (delay + 1) % (APPEAR_TIME * 2);
 			} else if(is_draw){
+				kill_bot();
 				gameStats::current_stage = gameStats::DRAW;
 				ignore_repeated_counts = false;
 			} else{
@@ -428,6 +493,7 @@ namespace draw{
 			win.setView(view);
 
 			tableBackground(win);
+			botCalculationIndication(win);
 			hoverEffect(win, event); // hover effect + handle user's click
 			moves(win);
 			drawWinningIndication(win);
@@ -934,6 +1000,7 @@ namespace draw{
 			static int warning_showtime = 0, flashing_time = 0, seconds_timer = 0, confirm_timer = -1;
 
 			if((gameStats::VERY_previous_stage != gameStats::current_stage) || (globalConfig::current_win != 3)){
+				click_times = 0;
 				warning_showtime = 0;
 				flashing_time = 0;
 				seconds_timer = 0;
@@ -985,6 +1052,7 @@ namespace draw{
 			};
 			if(is_event && seconds_timer == 0){
 				seconds_timer = 3;
+				confirm_timer = -1;
 				std::thread decrease_by_seconds(
 					events::decrease_one_by_every, 
 					1000, std::ref(seconds_timer), std::ref(confirm_timer)
@@ -1058,6 +1126,53 @@ namespace draw{
 		savePopupComponents::drawAll(win, event);
 	};
 
+#define DISPLAY_SPEED 300
+	void waitingMachineResponsePopup(sf::RenderWindow& win){
+		static sf::RectangleShape box_obj({300, 100});
+		static sf::Text text_obj(fonts::minecraft);
+		box_obj.setOrigin({
+			0.5f * box_obj.getLocalBounds().size.x,
+			0.5f * box_obj.getLocalBounds().size.y
+		});
+		box_obj.setPosition({1000, 200});
+		win.draw(box_obj);
+		
+#define condition(x, y, z) (x) ? (y) : (z)
+
+		static int count_display = 0;
+		box_obj.setFillColor(condition(!globalConfig::dark_mode, sf::Color(255, 255, 255, 150), sf::Color(0,0,0,150)));
+		box_obj.setOutlineColor(sf::Color::Transparent);
+		std::wstring text_strings[2] = {
+			L"Calculating moves",
+			L"Tính toán nước đi"
+		};
+		count_display = (count_display + 1) % (4 * DISPLAY_SPEED);
+		if(count_display >= DISPLAY_SPEED && count_display < 2 * DISPLAY_SPEED){
+			text_strings[0] += L".";
+			text_strings[1] += L".";
+		} else if(count_display < 3 * DISPLAY_SPEED){
+			text_strings[0] += L"..";
+			text_strings[1] += L"..";
+		} else{
+			text_strings[0] += L"...";
+			text_strings[1] += L"...";
+		};
+		text_obj.setCharacterSize(20);
+		text_obj.setString(text_strings[globalConfig::language]);
+		text_obj.setOutlineThickness(4);
+		text_obj.setFillColor(condition(!globalConfig::dark_mode, sf::Color::Black, sf::Color::White));
+		text_obj.setOutlineColor(condition(!globalConfig::dark_mode, sf::Color::White, sf::Color::Black));
+		text_obj.setOrigin({
+			0,
+			0.5f * text_obj.getGlobalBounds().size.y
+		});
+		text_obj.setPosition({860, 200});
+		win.draw(text_obj);
+
+#undef condition
+
+	};
+
 };
 
 
@@ -1066,6 +1181,8 @@ void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event){
 	static bool stage_changed = false;
 
 	win.clear();
+
+	events::callMachineToPlay();
 
 	draw::background(win);
 
@@ -1087,6 +1204,11 @@ void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event){
 		draw::savePopup(win, event);
 	};
 
+	if(!gameStats::saveInfo.is_multiplayer && 
+		(gameStats::moves.size() + gameStats::saveInfo.first_turn + gameStats::saveInfo.playerAs) % 2 == 1){
+		draw::waitingMachineResponsePopup(win);
+	};
+
 	draw::exitButton(win, event);
 
 	win.display();
@@ -1104,7 +1226,10 @@ void loopGameScreen(sf::RenderWindow& win){
 
 	while(win.isOpen()){
 
-		if(globalConfig::current_win != 3) return;
+		if(globalConfig::current_win != 3){
+			kill_bot();
+			return;
+		};
 
 		win.setSize({globalConfig::win_width, globalConfig::win_height});
 
@@ -1135,13 +1260,13 @@ void drawGameScreen(
 
 	//if the user opens the game for the first time, the game will be loaded accordingly.
 	if(start){
-		if(gameStats::saveInfo.is_new_game){
-			gameStats::cells.resize(16, std::vector<short> (16, 0));
-			gameStats::moves.clear();
-			gameStats::x_score = 0;
-			gameStats::o_score = 0;
-			gameStats::current_stage = gameStats::PLAYING;
-		} else{
+		gameStats::cells.clear();
+		gameStats::cells.resize(16, std::vector<short> (16, 0));
+		gameStats::moves.clear();
+		gameStats::x_score = 0;
+		gameStats::o_score = 0;
+		gameStats::current_stage = gameStats::PLAYING;
+		if(!gameStats::saveInfo.is_new_game){
 			loadGame(
 				gameStats::saveInfo,
 				gameStats::x_score,
@@ -1151,6 +1276,8 @@ void drawGameScreen(
 				gameStats::is_load_game_success // if successful, return "success", else return the error's content
 			);
 		};
+	} else if(globalConfig::previous_win == 4){
+		gameStats::saveInfo = globalConfig::current_package;
 	};
 
 	//check if user save the game in WINNING stage or DRAWING stage

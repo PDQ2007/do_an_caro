@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\caro_bot.cpp" />
+    <ClCompile Include="src\caro_bot.h" />
     <ClCompile Include="src\config.cpp" />
     <ClCompile Include="src\different_window.cpp" />
     <ClCompile Include="src\game_window.cpp" />

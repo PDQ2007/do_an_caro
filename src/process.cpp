@@ -30,6 +30,7 @@ void loadGame(
 	unsigned int n;
 	unsigned short x, y;
 	fi >> n;
+	moves.clear();
 	cells.resize(16, std::vector<short> (16,0));
 	for(int i = 0; i < n; ++i){
 		fi >> x >> y;
@@ -43,7 +44,7 @@ void loadGame(
 			return;
 		};
 		moves.push_back({x, y});
-		cells[x][y] = (i + 1 + package.first_turn) % 2 + 1;
+		cells[x][y] = (i + package.first_turn) % 2 + 1;
 	};
 	if(!fi.eof()){
 		if(globalConfig::language == 0){
@@ -98,25 +99,29 @@ std::vector<sf::Vector2i> checkForWin(
 	auto check = [&last_move, &cells, &status, &status2, &result](short _x, short _y){
 		std::vector<sf::Vector2i> temp_res;
 		int count = 1, i = 0;
-		bool end_loop = false;
+		bool end_loop = false, stop_check[2] = {false, false};
 		while(!end_loop){
 			end_loop = true;
 			++i;
 			if(
-				(inside(last_move.x + (i * _x))) && (inside(last_move.y + (i * _y))) &&
+				(inside(last_move.x + (i * _x))) && (inside(last_move.y + (i * _y))) && !stop_check[0] &&
 				(cells[last_move.x + (i * _x)][last_move.y + (i * _y)] == cells[last_move.x][last_move.y])
 			){
 				++count;
 				temp_res.push_back(sf::Vector2i(last_move.x + (i * _x), last_move.y + (i * _y)));
 				end_loop = false;
+			} else{
+				stop_check[0] = true;
 			};
 			if(
-				(inside(last_move.x - (i * _x))) && (inside(last_move.y - (i * _y))) &&
+				(inside(last_move.x - (i * _x))) && (inside(last_move.y - (i * _y))) && !stop_check[1] &&
 				cells[last_move.x - (i * _x)][last_move.y - (i * _y)] == cells[last_move.x][last_move.y]
 			){
 				++count;
 				temp_res.push_back(sf::Vector2i(last_move.x - (i * _x), last_move.y - (i * _y)));
 				end_loop = false;
+			} else{
+				stop_check[1] = true;
 			};
 			if(count >= 5){
 				status2 *= false;
@@ -140,6 +145,8 @@ bool checkForDraw(std::vector<sf::Vector2i>& moves){
 	if(moves.size() >= 16 * 16) return true;
 	return false;
 };
+
+//
 
 
 #endif

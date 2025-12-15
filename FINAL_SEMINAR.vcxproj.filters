@@ -42,6 +42,12 @@
     <ClCompile Include="src\prepare_window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\caro_bot.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\caro_bot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\templates.h">

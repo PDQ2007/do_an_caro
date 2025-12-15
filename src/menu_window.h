@@ -4,6 +4,8 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 
+#include "config.h"
+
 void drawMenuWindow(sf::RenderWindow& win);
 
 #endif

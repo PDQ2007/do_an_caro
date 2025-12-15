@@ -7,7 +7,7 @@
 namespace {
 
 namespace settings_stats{
-	unsigned short current_tab = 0; // 0 = general, 1 = in-game
+	unsigned short current_tab = 0, VERY_previous_tab = 0; // 0 = general, 1 = in-game
 };
 
 namespace fonts{
@@ -148,7 +148,7 @@ namespace draw{
 		return return_val;
 	};
 
-	void tabs_general(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start){
+	void tabs_general(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start, bool& is_input_warning){
 		static std::wstring strings[2] = {
 			L"General",
 			L"Chung"
@@ -160,13 +160,13 @@ namespace draw{
 		);
 		win.draw(bounds);
 		win.draw(text_obj);
-		if(is_event){
+		if(is_event && !is_input_warning){
 			std::thread processEvent(events::tab_general_clicked);
 			processEvent.detach();
 		};
 	};
 
-	void tabs_inGame(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start){
+	void tabs_inGame(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start, bool& is_input_warning){
 		static std::wstring strings[2] = {
 			L"In-game",
 			L"Trong trận"
@@ -178,13 +178,13 @@ namespace draw{
 		);
 		win.draw(bounds);
 		win.draw(text_obj);
-		if(is_event){
+		if(is_event && !is_input_warning){
 			std::thread processEvent(events::tab_inGame_clicked);
 			processEvent.detach();
 		};
 	};
 
-	void tabs_backToPreviousScreen(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start){
+	void tabs_backToPreviousScreen(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& start, bool& is_input_warning){
 		static std::wstring strings[2] = {
 			L"Back",
 			L"Trở về"
@@ -196,7 +196,7 @@ namespace draw{
 		);
 		win.draw(bounds);
 		win.draw(text_obj);
-		if(is_event){
+		if(is_event && !is_input_warning){
 			std::thread processEvent(events::tab_backToPreviousScreen_clicked);
 			processEvent.detach();
 		};
@@ -275,7 +275,7 @@ namespace draw{
 
 #undef X
 #undef X_
-#undef Y(t)
+#undef Y
 
 		};
 		
@@ -393,21 +393,304 @@ namespace draw{
 	};
 
 	namespace in_game {
-		void underDevelopment(sf::RenderWindow& win){
-			static sf::Text text(fonts::minecraft);
-			text.setCharacterSize(30);
-			text.setString("Feature Under Development...");
-			text.setOrigin({
-				text.getLocalBounds().size.x / 2.f,
-				text.getLocalBounds().size.y / 2.f
-			});
-			text.setPosition({600.f, 400.f});
-			if(globalConfig::dark_mode){
-				text.setFillColor(sf::Color::White);
-			} else{
-				text.setFillColor(sf::Color::Black);
+		
+		namespace multiplayer {
+
+			void drawInputs(sf::RenderWindow& win, std::optional<sf::Event>& event, std::vector<int>& warning_list){
+
+				auto drawBox = [&win, &event, &warning_list](
+					char idx,
+					std::vector<std::wstring> label_text_strings,
+					sf::FloatRect bounds,
+					int max_char,
+					std::string& input_string
+				) {
+					
+					//draw_warning	
+					static sf::RectangleShape box_obj[3];
+					static sf::Text 
+						input_text_obj[3] = {
+							sf::Text(fonts::minecraft),
+							sf::Text(fonts::minecraft),
+							sf::Text(fonts::minecraft)
+						},
+						label_text_obj[3] = {
+							sf::Text(fonts::minecraft),
+							sf::Text(fonts::minecraft),
+							sf::Text(fonts::minecraft)
+						};
+					std::vector<sf::Color> 
+						box_fill_colors = {
+							sf::Color(255, 223, 148),
+							sf::Color(14, 2, 117)
+						},
+						box_outline_colors = {
+							sf::Color(18, 2, 156),
+							sf::Color(214, 150, 0)
+						},
+						box_selected_outline_colors = {
+							sf::Color(2, 250, 35),
+							sf::Color(255, 0, 0)
+						},
+						text_fill_colors = {
+							sf::Color::Black,
+							sf::Color::White
+						},
+						text_outline_colors = {
+							sf::Color::White,
+							sf::Color::Black
+						};
+					wchar_t status = L'0';
+					static bool isBoxSelected[3] = {0, 0, 0};
+					setupInputBox(
+						true,
+						win,
+						box_obj[idx],
+						label_text_obj[idx],
+						input_text_obj[idx],
+						bounds,
+						5,
+						box_fill_colors,
+						box_outline_colors,
+						box_selected_outline_colors,
+						fonts::minecraft,
+						label_text_strings,
+						20,
+						text_fill_colors,
+						text_outline_colors,
+						4,
+						event,
+						input_string,
+						max_char,
+						isBoxSelected[idx],
+						status //A = max_length warning, B = empty_warning
+					);
+					win.draw(box_obj[idx]);
+					win.draw(input_text_obj[idx]);
+					win.draw(label_text_obj[idx]);
+
+					//process selection
+					if(isBoxSelected[idx]){
+						isBoxSelected[(idx + 1) % 3] = false;
+						isBoxSelected[(idx + 2) % 3] = false;
+					};
+
+					//process warning
+					if(status == L'A'){
+						warning_list[0] = -1;
+					} else if(status == L'B'){
+						warning_list[1] = -1;
+					} else if(status != L'0'){
+						warning_list[2] = -1;
+						warning_list[3] = static_cast<int> (status);
+					};
+				};
+
+				drawBox(
+					0,
+					{L"Save name", L"Tên ván chơi"},
+					{{350, 240}, {750, 60}},
+					38,
+					globalConfig::current_package.save_name
+				);
+
+				drawBox(
+					1,
+					{L"Player X's name", L"Tên người chơi X"},
+					{{350, 360}, {350, 60}},
+					20,
+					globalConfig::current_package.playerX_name
+				);
+
+				drawBox(
+					2,
+					{L"Player O's name", L"Tên người chơi O"},
+					{{750, 360}, {350, 60}},
+					20,
+					globalConfig::current_package.playerO_name
+				);
+				
 			};
-			win.draw(text);
+
+#define WARNING_SHOWTIME 10000
+#define WARNING_FLASHINGTIME 2000
+			void drawWarnings(sf::RenderWindow&win, std::optional<sf::Event>& event, std::vector<int>& warning_list){
+				static std::wstring warning_strings[3][2] = {
+					{
+						L"Name cannot be too long.",
+						L"Tên không thể quá dài."
+					},
+					{
+						L"Name cannot be empty.",
+						L"Tên không thể để trống."
+					},
+					{
+						L"Character 'A' is not allowed.",
+						L"Kí tự 'A' không được cho phép."
+					}
+				};
+				char idx[3] = {0, 1, 2};
+				
+				auto decreaseWarning = [](int& count){
+					if(count == -1) count = WARNING_SHOWTIME;
+					else count = (--count >= 0) ? count : 0;
+				};
+
+				decreaseWarning(warning_list[0]);
+				decreaseWarning(warning_list[1]);
+				decreaseWarning(warning_list[2]);
+
+				if(warning_list[2] > 0){
+					// Replace the 'X' in the string with the invalid character
+					warning_strings[2][0][11] = static_cast<wchar_t> (warning_list[3]); 
+					warning_strings[2][1][7] = static_cast<wchar_t> (warning_list[3]); 
+				};
+
+				for(int i = 0; i < 2; ++i){
+					for(int j = i + 1; j < 3; ++j){
+						if(warning_list[idx[i]] < warning_list[idx[j]]){
+							std::swap(idx[i], idx[j]);
+						};
+					};
+				};
+
+				//draw warning texts
+				static sf::Text warning_text_obj(fonts::minecraft);
+				static int count_flashing = 0;
+				count_flashing = (count_flashing + 1) % (int)(3.0/2 * (float)WARNING_FLASHINGTIME);
+				for(int i = 0; i < 3; ++i){
+					if(warning_list[idx[0]] == 0){
+						count_flashing = 0;
+						break;
+					};
+					if(warning_list[idx[i]] > 0){
+						int outline_thickness = 4;
+						if(count_flashing < WARNING_FLASHINGTIME){
+							outline_thickness = 4;
+						} else{
+							outline_thickness = 0;
+						};
+						std::vector<sf::Color> 
+							text_fill_colors = {
+								sf::Color(222, 2, 2),
+								sf::Color(252, 61, 61)
+							},
+							text_outline_colors = {
+								sf::Color::Yellow,
+								sf::Color::Yellow
+							};
+						setUpTextObj(
+							true,
+							win,
+							warning_text_obj,
+							text_fill_colors,
+							text_outline_colors,
+							outline_thickness,
+							20,
+							{0.5, 0.5},
+							{600, static_cast<float> (100 + 50 * i)},
+							warning_strings[idx[i]]
+						);
+						win.draw(warning_text_obj);
+					} else{
+						break;
+					};
+				};
+
+			};
+
+			void drawAll(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& is_input_warning){
+				static std::vector<int> warning_list = {0, 0, 0, 0};
+				// 0th element => max_length warning
+				// 1st element => empty_warning
+				// 2nd element => invalid input
+				// 3rd element => invalid character
+
+				if((globalConfig::current_win != 4) || (settings_stats::current_tab != settings_stats::VERY_previous_tab)){
+					warning_list = {0, 0, 0, 0};
+				};
+
+				is_input_warning = (globalConfig::current_package.save_name.size() == 0)
+					|| (globalConfig::current_package.playerX_name.size() == 0)
+					|| (globalConfig::current_package.playerO_name.size() == 0);
+
+				drawInputs(win, event, warning_list);
+
+				drawWarnings(win, event, warning_list);
+			};
+		};
+
+		namespace singleplayer {
+
+			void difficultyOption(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& init){
+
+				// draw label
+				static sf::Text label_obj(fonts::minecraft);
+				std::vector<sf::Color>
+					fill_colors = {sf::Color::Black, sf::Color::White},
+					outline_colors = {sf::Color::White, sf::Color::Black};
+				std::wstring label_strings[2] = {
+					L"Difficulty:",
+					L"Độ khó:"
+				};
+				setUpTextObj(
+					init,
+					win,
+					label_obj,
+					fill_colors,
+					outline_colors,
+					4,
+					30,
+					{0, 0.5},
+					{300, 600},
+					label_strings
+				);
+				win.draw(label_obj);
+
+				sf::Color
+					text_fill_colors[2] = {sf::Color::Black, sf::Color::White},
+					text_outline_colors[2] = {sf::Color::White, sf::Color::Black};
+				static sf::Sprite button_obj(textures::text_button[0]);
+				static sf::Text text_obj(fonts::minecraft);
+				std::wstring text_strings[3][2] = {
+					{
+						L"Easy",
+						L"Dễ"
+					},
+				{
+					L"Medium",
+					L"Trung bình"
+				},
+				{
+					L"Hard",
+					L"Khó"
+				}
+				};
+				bool is_event = setupTextButton(
+					init,
+					win,
+					button_obj,
+					text_obj,
+					textures::text_button,
+					{{440, 550}, {300, 60}},
+					fonts::minecraft,
+					text_strings[gameStats::difficulty],
+					25,
+					text_fill_colors,
+					text_outline_colors,
+					4,
+					event
+				);
+
+				if(is_event){
+					gameStats::difficulty = (gameStats::difficulty + 1) % 3;
+				};
+
+				win.draw(button_obj);
+				win.draw(text_obj);
+
+			};
+
 		};
 	};
 
@@ -416,10 +699,14 @@ namespace draw{
 
 void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event, bool& re_init){
 	
+	static bool tab_change = false;
+
 	win.setSize({
 		globalConfig::win_width, 
 		globalConfig::win_height
 	});
+
+	static bool is_input_warning = false;
 
 	win.clear();
 
@@ -427,22 +714,32 @@ void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event, boo
 
 	draw::settingsBox(win, re_init);
 
-	draw::tabs_general(win, event, re_init);
+	draw::tabs_general(win, event, re_init, is_input_warning);
 
 	if(globalConfig::previous_win == 3)
-		draw::tabs_inGame(win, event, re_init);
+		draw::tabs_inGame(win, event, re_init, is_input_warning);
 
-	draw::tabs_backToPreviousScreen(win, event, re_init);
+	draw::tabs_backToPreviousScreen(win, event, re_init, is_input_warning);
 
 	if(settings_stats::current_tab == 0){
 		draw::general::language(win, event, re_init);
 		draw::general::dark_mode(win, event, re_init);
 		draw::general::sound_on(win, event, re_init);
 	} else if(settings_stats::current_tab == 1){
-		draw::in_game::underDevelopment(win);
+		draw::in_game::multiplayer::drawAll(win, event, is_input_warning);
+		if(!gameStats::saveInfo.is_multiplayer){
+			draw::in_game::singleplayer::difficultyOption(win, event, re_init);
+		};
 	};
 
 	win.display();
+
+	if(settings_stats::current_tab != settings_stats::VERY_previous_tab && !tab_change){
+		tab_change = true;
+	} else{
+		tab_change = false;
+		settings_stats::VERY_previous_tab = settings_stats::current_tab;
+	};
 
 };
 
@@ -474,6 +771,8 @@ void loopSettingsScreen(sf::RenderWindow& win){
 }; // make everything defined above local
 
 void drawSettingsScreen(sf::RenderWindow& win){
+	settings_stats::current_tab = 0;
+	settings_stats::VERY_previous_tab = 0;
 	loopSettingsScreen(win);
 };
 

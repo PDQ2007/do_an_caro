@@ -4,7 +4,7 @@
 #include "config.h"
 
 struct gameDataPackage {
-	bool is_new_game, is_multiplayer;
+	bool is_new_game, is_multiplayer, playerAs = 0;
 	int first_turn; // 0 for X, 1 for O
 	std::string
 		save_name,

@@ -179,7 +179,7 @@ void setupInputBox(bool init,
 
 	// set up label
 	label_text_obj.setString(label_text_string[DARK]);
-	label_text_obj.setCharacterSize(25);
+	label_text_obj.setCharacterSize(text_size);
 	label_text_obj.setFillColor(text_fill_color[DARK]);
 	label_text_obj.setOutlineColor(text_outline_color[DARK]);
 	label_text_obj.setOutlineThickness(3);
@@ -192,7 +192,7 @@ void setupInputBox(bool init,
 	// process event
 
 	// set up input text
-	input_text_obj.setCharacterSize(25);
+	input_text_obj.setCharacterSize(text_size);
 	input_text_obj.setString(input_string);
 	input_text_obj.setFont(text_font);
 	input_text_obj.setOutlineThickness(3);

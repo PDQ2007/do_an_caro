@@ -4,6 +4,7 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include "config.h"
 
 void loadGame(
 	gameDataPackage& package,
@@ -14,7 +15,6 @@ void loadGame(
 	std::wstring& return_message // if successful, return "success", else return the error's content
 );
 
-// 
 std::vector<sf::Vector2i> checkForWin(
 	sf::Vector2i& last_move, 
 	std::vector<std::vector<short> >& cells,
