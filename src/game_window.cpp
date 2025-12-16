@@ -114,12 +114,12 @@ namespace events{
 	void undoMove(){
 
 		auto popMove = [](){
+			if(gameStats::moves.size() == 0) return;
 			auto& last_move = gameStats::moves[gameStats::moves.size()-1];
 			gameStats::cells[last_move.x][last_move.y] = 0;
 			gameStats::moves.pop_back();
 		};
 
-		if(gameStats::moves.size() == 0) return;
 		if(gameStats::saveInfo.is_multiplayer){	
 			popMove();
 		} else{

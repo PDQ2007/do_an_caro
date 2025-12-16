@@ -3,6 +3,8 @@
 
 #include "config.h"
 
+std::ofstream f("log.txt");
+
 typedef long long longlong;
 
 namespace { //<= START AMONYMOUS NAMESPACE
@@ -11,27 +13,66 @@ namespace internal {
 	bool is_running = true;
 	bool is_win = false;
 	std::vector<std::vector<short> > cells;
+	//std::vector<std::vector<longlong> > reward_for_defense(16, std::vector<longlong> (16, 0));
 	std::vector<sf::Vector2i> moves, next_moves, adj_cells;
 	//std::vector<std::vector<std::vector<int> > > mark_score_grid;
-	std::vector<std::vector<std::vector<int> > >
-		mark_defense_score(16, std::vector<std::vector<int> > (16, std::vector<int> (0)));
 
-	int score_distribution[6][3] = {
-		{0, 0, 0},
-		{20, 10, 0},                   // 1 con: Live > Blocked > Dead
-		{500, 100, 0},                 // 2 con
-		{5000, 200, 0},                // 3 con: Live 3 (5000) > Blocked 3 (200)
-		{200000, 10000, 0},            // 4 con: Live 4 (Thắng chắc) > Blocked 4
-		{100000000, 100000000, 100000000} // 5 con: Thắng tuyệt đối
+/*
+*			SCORE DISTRIBUTION
+		Count		0	1	2	3	4			5
+		Unblocked	0	10	20	100	99999999	99999999999
+		Blocked		0	5	10	50	200			99999999999
+*/
+
+	//idx 0: count;   idx 1: is blocked
+	int score_distribution[6][2] = {
+		{ 
+			0, 0
+		},
+		{ 
+			10, 5
+		},
+		{ 
+			100, 50
+		},
+		{ 
+			3000, 1000
+		},
+		{ 
+			20000000, 1000000
+		},
+		{ // Count 5: WIN
+			INT32_MAX, INT32_MAX
+		}
 	};
 
 	void cleanUpForNewGame(){
+		internal::cells.clear();
+		internal::cells.resize(16, std::vector<short> (16, 0));
 		{
 			std::lock_guard<std::mutex> lock(gameStats::movesMutex);
 			gameStats::next_moves = internal::next_moves;
 		};
-		mark_defense_score.clear();
-		mark_defense_score.resize(16, std::vector<std::vector<int> > (16, std::vector<int> (0)));
+	};
+};
+
+void printCells(){
+	f << "\n------------------PRINT CELLS-------------\n";
+	for(auto& i: internal::cells){
+		for(auto& j: i){
+			f << j << ' ';
+		};
+		f << '\n';
+	};
+};
+
+void printDefense(std::vector<std::vector<longlong> >& reward_for_defense){
+	f << "\n------------------PRINT DEFENSE-------------\n";
+	for(auto& i: reward_for_defense){
+		for(auto& j: i){
+			f << j << ' ';
+		};
+		f << '\n';
 	};
 };
 
@@ -64,66 +105,73 @@ void addRandomMove(
 
 namespace algo {
 
-	longlong calculateEvaluation(){
-		std::vector<std::vector<char> > mark_checked(16, std::vector<char> (16, 0));
-		
-		longlong result = 0;
+	std::vector<sf::Vector2i> must_go_moves(player playAs){
+		std::vector<sf::Vector2i> list_of_must_go_moves;
+		sf::Vector2i this_move;
+		char max_count = 0;
+		if(internal::next_moves.empty()) this_move = internal::moves.back();
+		else this_move = internal::next_moves.back();
+		auto checkDirection = [&list_of_must_go_moves, &max_count, &playAs](const char& x, const char& y, char _X, char _Y){
 
-		auto checkDirection = [&mark_checked](char x, char y, char _X, char _Y) -> int {
+			auto updateMaxCount = [&max_count, &list_of_must_go_moves](const char& count){
+				if(max_count < count) list_of_must_go_moves.clear();
+				max_count = std::max(count, max_count);
+			};
 
-			char shift = 1;
-			if(_X < 0 && _Y > 0) shift = 3;
-			else if(_X == 0 && _Y > 0) shift = 2;
-			else if(_X > 0 && _Y > 0) shift = 1;
-			else if(_X > 0 && _Y == 0) shift = 0;
-
-			if((mark_checked[x][y] & (1 << shift)) == 1) return 0;
-
-			bool blocked_top = false, blocked_bottom = false;
-			int count = 1, last_idx;
-
-			if(!isInside(x - _X, y - _Y) || internal::cells[x-_X][y-_Y] != 0) blocked_top = true;
-
-			for(int i = 1; i <= 5; ++i){
-				if(isInside(x + i*_X, y + i*_Y) 
-					&& is_same(internal::cells[x][y], internal::cells[x + i*_X][y + i*_Y]) 
+			char count = 1, idx_back = -1, idx_front = -1;
+			for(int i = -1;; --i){
+				if(isInside(x + i * _X, y + i * _Y) && !is_same(internal::cells[x][y], playAs + 1)
+					&& is_same(internal::cells[x][y], internal::cells[x + i * _X][y + i * _Y])
 				){
 					++count;
-				} else{
-					if(!isInside(x + i*_X, y + i*_Y) || internal::cells[x + i*_X][y + i*_Y] != 0){
-						blocked_bottom = true;
-					};
-					last_idx = i;
-					break;
+					continue;
+				} else if(isInside(x + i * _X, y + i * _Y) && internal::cells[x + i * _X][y + i * _Y] == 0){
+					idx_back = -1 * i;
 				};
+				break;
 			};
 
-			if(count >= 2){
-				for(int i = 0; i < last_idx; ++i){
-					mark_checked[x + i * _X][y + i * _Y] |= (1 << shift);
+			for(int i = 1;; ++i){
+				if(isInside(x + i * _X, y + i * _Y) && !is_same(internal::cells[x][y], playAs + 1)
+					&& is_same(internal::cells[x][y], internal::cells[x + i * _X][y + i * _Y])
+				){
+					++count;
+					continue;
+				} else if(isInside(x + i * _X, y + i * _Y) && internal::cells[x + i * _X][y + i * _Y] == 0){
+					idx_front = i;
 				};
-				return internal::score_distribution[count][blocked_bottom + blocked_top];
+				break;
 			};
 
-			return 0;
+			bool unblocked = (idx_back > -1 && idx_front > -1);
+			if(count >= 4 && unblocked){
+				updateMaxCount(5);
+				list_of_must_go_moves.push_back({x - idx_back * _X, y - idx_back * _Y});
+				list_of_must_go_moves.push_back({x + idx_front * _X, y + idx_front * _Y});
+			} else if(max_count < 5 && count >= 4 && !unblocked && (idx_back + idx_front > -2)){
+				updateMaxCount(4);
+				list_of_must_go_moves.push_back({
+					x + ((idx_back > -1) ? (-idx_back) : idx_front) * _X,
+					y + ((idx_back > -1) ? (-idx_back) : idx_front) * _Y
+				});
+			} else if(max_count < 4 && count == 3 && unblocked){
+				//updateMaxCount(3);
+				//list_of_must_go_moves.push_back({x - idx_back * _X, y - idx_back * _Y});
+				//list_of_must_go_moves.push_back({x + idx_front * _X, y + idx_front * _Y});
+			};
 
 		};
 
-		for(int i = 0; i < 16; ++i){
-			for(int j = 0; j < 16; ++j){
-				if(internal::cells[i][j] == 0) continue;
-				char mul = (is_same(internal::cells[i][j], 1)) ? 1 : -1;
-				result += mul * checkDirection(i, j, 1, 0);
-				result += mul * checkDirection(i, j, 1, 1);
-				result += mul * checkDirection(i, j, 0, 1);
-				result += mul * checkDirection(i, j, -1, 1);
-			};
-		};
+		checkDirection((char)this_move.x, (char)this_move.y, 1, 1);
+		checkDirection((char)this_move.x, (char)this_move.y, 1, -1);
+		checkDirection((char)this_move.x, (char)this_move.y, 0, 1);
+		checkDirection((char)this_move.x, (char)this_move.y, 1, 0);
 
-		return result;
+		return list_of_must_go_moves;
 	};
 
 	std::vector<sf::Vector2i> adjacent_cells(){
+
 		std::vector<sf::Vector2i> result;
 		std::vector<std::vector<bool> > mark_cells(16, std::vector<bool> (16, 0));
 
@@ -131,9 +179,9 @@ namespace algo {
 			for(int i = -1; i <= 1; ++i){
 				for(int j = -1; j <= 1; ++j){
 					if(!isInside(this_move.x + i, this_move.y + j)
-						|| !internal::cells[this_move.x + i][this_move.y + j] == 0
+						|| internal::cells[this_move.x + i][this_move.y + j] != 0
 						|| i == 0 && j == 0
-					) continue;
+						) continue;
 					if(mark_cells[this_move.x + i][this_move.y + j]) continue;
 					mark_cells[this_move.x + i][this_move.y + j] = true;
 					result.push_back({this_move.x + i, this_move.y + j});
@@ -158,62 +206,213 @@ namespace algo {
 		return result;
 	};
 
-std::pair<longlong, sf::Vector2i> minimaxWithPruning(
-	sf::Vector2i this_move,
-	char depth,
-	player playAs,
-	longlong alpha,
-	longlong beta
-){
-	internal::cells[this_move.x][this_move.y] = 0;
-	{
-		std::lock_guard<std::mutex> lock(gameStats::movesMutex);
-		gameStats::next_moves = internal::next_moves;
-	};
-	if(!internal::is_running){
-		return {0, {0,0}};
+	std::vector<sf::Vector2i> moves_to_iterate(player playAs){
+		auto return_list = must_go_moves(playAs);
+		if(return_list.empty()) return_list = adjacent_cells();
+		return return_list;
 	};
 
-	internal::cells[this_move.x][this_move.y] = playAs + 3;
+	std::vector<std::vector<longlong>> calculateDefenseReward(player rewardFor){
 
-	internal::next_moves.push_back(this_move);
-	{
-		std::lock_guard<std::mutex> lock(gameStats::movesMutex);
-		gameStats::next_moves = internal::next_moves;
-	};
-	if(depth == 0){
-		internal::next_moves.pop_back();
-		
-		return {calculateEvaluation(), this_move};
-	} else{
-		if(playAs == X){
-			std::pair<longlong, sf::Vector2i> best_eval = {INT64_MIN, {0, 0}}, t_eval;
-			auto list_adj_cells = adjacent_cells();
-			for(auto& i: list_adj_cells){
-				t_eval = minimaxWithPruning(i, depth-1, O, alpha, beta);
-				if(t_eval.first > best_eval.first) best_eval = t_eval;
-				alpha = std::max(best_eval.first, alpha);
-				if(alpha >= beta) break;
+		std::vector<std::vector<longlong> > reward_for_defense(16, std::vector<longlong> (16, 0));
+
+		//std::cout << "--------------------\n";
+
+		auto checkDirection = [&rewardFor, &reward_for_defense](char x, char y, char _X, char _Y){
+
+			//std::cout << (int)x << ' ' << (int)y << ' ' << (int)_X << ' ' << (int)_Y << " => ";
+
+			char mul = (is_same(rewardFor, X)) ? 1 : -1;
+
+			char count = 1, blocked = 0;
+
+			for(int i = -1;; --i){
+				if(isInside(x + i * _X, y + i * _Y)){
+					if(internal::cells[x + i * _X][y + i * _Y] == 0){
+						break;
+					} else if(!is_same(rewardFor + 1, internal::cells[x + i * _X][y + i * _Y])){
+						++count;
+					} else if(is_same(rewardFor + 1, internal::cells[x + i * _X][y + i * _Y])){
+						++blocked;
+						break;
+					};
+				} else{
+					++blocked;
+					break;
+				};
 			};
+
+			for(int i = 1;; ++i){
+				if(isInside(x + i * _X, y + i * _Y)){
+					if(internal::cells[x + i * _X][y + i * _Y] == 0){
+						break;
+					} else if(!is_same(rewardFor + 1, internal::cells[x + i * _X][y + i * _Y])){
+						++count;
+					} else if(is_same(rewardFor + 1, internal::cells[x + i * _X][y + i * _Y])){
+						++blocked;
+						break;
+					};
+				} else{
+					++blocked;
+					break;
+				};
+			};
+
+			if(blocked > 1){
+				//std::cout << " '0' \n";
+				return;
+			};
+			//std::cout << internal::reward_for_defense[x][y] << " (" << mul * internal::score_distribution[std::min(count, (char)5)][blocked] << ") \n";
+			reward_for_defense[x][y] += mul * internal::score_distribution[std::min(count, (char)5)][blocked];
+		};
+
+		auto list_adj_cell = adjacent_cells();
+
+		for(auto& i: list_adj_cell){
+			checkDirection(i.x, i.y, 1, 1);
+			checkDirection(i.x, i.y, -1, 1);
+			checkDirection(i.x, i.y, 0, 1);
+			checkDirection(i.x, i.y, 1, 0);
+		};
+
+		printDefense(reward_for_defense);
+
+		return reward_for_defense;
+
+	};
+
+	longlong calculateEvaluation(player playAs, player first_player){
+
+#define WON internal::next_won.back()
+
+		std::vector<std::vector<char> > mark_checked(16, std::vector<char> (16, 0));
+
+		longlong result = 0;
+
+		auto checkDirection = [&mark_checked](char x, char y, char _X, char _Y) -> int {
+
+			char shift = 1;
+			if(_X < 0 && _Y > 0) shift = 3;
+			else if(_X == 0 && _Y > 0) shift = 2;
+			else if(_X > 0 && _Y > 0) shift = 1;
+			else if(_X > 0 && _Y == 0) shift = 0;
+
+			if((mark_checked[x][y] & (1 << shift))) return 0;
+
+			bool blocked_top = false, blocked_bottom = 0;
+			int count = 1, last_idx;
+
+			if(!isInside(x - _X, y - _Y) || internal::cells[x-_X][y-_Y] != 0) blocked_top = true;
+
+			for(int i = 1;; ++i){
+				if(isInside(x + i*_X, y + i*_Y)){
+					if(is_same(internal::cells[x][y], internal::cells[x + i*_X][y + i*_Y])){
+						++count;
+						continue;
+					} else if(internal::cells[x + i*_X][y + i*_Y] != 0){
+						blocked_bottom = true;
+					} else if(internal::cells[x + i*_X][y + i*_Y] == 0){
+						blocked_bottom = false;
+					};
+				} else{
+					blocked_bottom = true;
+				};
+				last_idx = i;
+				break;
+			};
+
+			count = std::min(count, 5);
+
+			if(count >= 1 && blocked_bottom + blocked_top < 2){
+				for(int i = 0; i < last_idx; ++i){
+					mark_checked[x + i * _X][y + i * _Y] |= (1 << shift);
+				};
+				return internal::score_distribution[count][blocked_top + blocked_bottom];
+			};
+			return 0;
+		};
+
+		for(int i = 0; i < 16; ++i){
+			for(int j = 0; j < 16; ++j){
+				if(internal::cells[i][j] == 0) continue;
+				char mul = (is_same(internal::cells[i][j], X)) ? 1 : -1;
+				result += mul * checkDirection(i, j, 1, 0);
+				result += mul * checkDirection(i, j, 1, 1);
+				result += mul * checkDirection(i, j, 0, 1);
+				result += mul * checkDirection(i, j, -1, 1);
+			};
+		};
+
+#undef WON
+
+		return result;
+
+	};
+
+	std::pair<longlong, sf::Vector2i> minimaxWithPruning(
+		sf::Vector2i this_move,
+		char depth,
+		player playAs,
+		player firstPlayer,
+		longlong alpha,
+		longlong beta,
+		longlong defense_reward = 0
+	){
+
+		if(!internal::is_running){
+			return {0, {0,0}};
+		};
+
+		//printCells();
+		auto reward_for_defense = calculateDefenseReward(playAs);
+
+		internal::cells[this_move.x][this_move.y] = playAs + 3;
+		internal::next_moves.push_back(this_move);
+
+		auto updateNextMoves = [](){
+			std::lock_guard<std::mutex> lock(gameStats::movesMutex);
+			gameStats::next_moves = internal::next_moves;
+		};
+		updateNextMoves();
+		if(depth == 0){
 			internal::next_moves.pop_back();
+			longlong result = (int)(0.5 * (reward_for_defense[this_move.x][this_move.y] + defense_reward));
+			result += calculateEvaluation(playAs, firstPlayer);
 			internal::cells[this_move.x][this_move.y] = 0;
-			return best_eval;
+			updateNextMoves();
+			return {result, this_move};
 		} else{
-			std::pair<longlong, sf::Vector2i> best_eval = {INT64_MAX, {0, 0}}, t_eval;
-			auto list_adj_cells = adjacent_cells();
-			for(auto& i: list_adj_cells){
-				t_eval = minimaxWithPruning(i, depth-1, X, alpha, beta);
-				if(t_eval.first < best_eval.first) best_eval = t_eval;
-				beta = std::min(best_eval.first, beta);
-				if(alpha >= beta) break;
+			std::pair<longlong, sf::Vector2i> best_eval;
+			if(playAs == X){
+				best_eval = {INT64_MIN, {0, 0}};
+				std::pair<longlong, sf::Vector2i> t_eval;
+				auto cells_to_iterate = moves_to_iterate(O);
+				auto reward_for_defense = calculateDefenseReward(O);
+				for(auto& i: cells_to_iterate){
+					t_eval = minimaxWithPruning(i, depth-1, O, firstPlayer, alpha, beta, defense_reward + reward_for_defense[this_move.x][this_move.y]);
+					if(t_eval.first > best_eval.first) best_eval = t_eval;
+					alpha = std::max(best_eval.first, alpha);
+					if(alpha >= beta) break;
+				};
+			} else{
+				best_eval = {INT64_MAX, {0, 0}};
+				std::pair<longlong, sf::Vector2i> t_eval;
+				auto cells_to_iterate = moves_to_iterate(X);
+				auto reward_for_defense = calculateDefenseReward(X);
+				for(auto& i: cells_to_iterate){
+					t_eval = minimaxWithPruning(i, depth-1, X, firstPlayer, alpha, beta, defense_reward + reward_for_defense[this_move.x][this_move.y]);
+					if(t_eval.first < best_eval.first) best_eval = t_eval;
+					beta = std::min(best_eval.first, beta);
+					if(alpha >= beta) break;
+				};
 			};
 			internal::next_moves.pop_back();
 			internal::cells[this_move.x][this_move.y] = 0;
+			updateNextMoves();
 			return best_eval;
 		};
-	};
 	
-};
+	};
 
 };
 
@@ -231,15 +430,16 @@ void bot_playing(player playAs, player firstPlayer, std::vector<sf::Vector2i>& m
 	if(internal::moves.size() == 0){
 		addRandomMove(playAs);
 	} else{
-		auto list_adj_cells = algo::adjacent_cells();
+		auto cells_to_iterate = algo::moves_to_iterate(playAs);
 		std::pair<longlong, sf::Vector2i> t_eval, best_eval;
 		if(playAs == X){
 			best_eval = {INT64_MIN, {0,0}};
 		} else if(playAs == O){
 			best_eval = {INT64_MAX, {0,0}};
 		};
-		for(auto& i: list_adj_cells){
-			t_eval = algo::minimaxWithPruning(i, gameStats::difficulty, playAs, INT64_MIN, INT64_MAX);
+		for(auto& i: cells_to_iterate){
+			t_eval = algo::minimaxWithPruning(i, gameStats::difficulty, playAs, firstPlayer, INT64_MIN, INT64_MAX);
+			//std::cout << "t-eval: " << t_eval.second.x << " " << t_eval.second.y << " => " << t_eval.first << '\n';
 			if(playAs == X && t_eval.first > best_eval.first){
 				best_eval = {t_eval.first, i};
 			} else if(playAs == O && t_eval.first < best_eval.first){
@@ -252,6 +452,7 @@ void bot_playing(player playAs, player firstPlayer, std::vector<sf::Vector2i>& m
 			if(!internal::is_running) break;
 		};
 		internal::moves.push_back(best_eval.second);
+		//std::cout << "BEST=" << best_eval.first << '\n';
 	};
 	if(internal::is_running){
 		{
