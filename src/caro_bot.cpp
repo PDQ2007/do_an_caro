@@ -39,7 +39,7 @@ namespace internal {
 			3000, 1000
 		},
 		{ 
-			20000000, 1000000
+			2000000, 100000
 		},
 		{ // Count 5: WIN
 			INT32_MAX, INT32_MAX
@@ -159,7 +159,6 @@ namespace algo {
 				//list_of_must_go_moves.push_back({x - idx_back * _X, y - idx_back * _Y});
 				//list_of_must_go_moves.push_back({x + idx_front * _X, y + idx_front * _Y});
 			};
-
 		};
 
 		checkDirection((char)this_move.x, (char)this_move.y, 1, 1);
@@ -335,7 +334,7 @@ namespace algo {
 		for(int i = 0; i < 16; ++i){
 			for(int j = 0; j < 16; ++j){
 				if(internal::cells[i][j] == 0) continue;
-				char mul = (is_same(internal::cells[i][j], X)) ? 1 : -1;
+				char mul = (is_same(internal::cells[i][j], X + 1)) ? 1 : -1;
 				result += mul * checkDirection(i, j, 1, 0);
 				result += mul * checkDirection(i, j, 1, 1);
 				result += mul * checkDirection(i, j, 0, 1);
@@ -349,6 +348,74 @@ namespace algo {
 
 	};
 
+	//std::pair<longlong, sf::Vector2i> minimaxWithPruning(
+	//	sf::Vector2i this_move,
+	//	char depth,
+	//	player playAs,
+	//	player firstPlayer,
+	//	longlong alpha,
+	//	longlong beta
+	//){
+
+	//	if(!internal::is_running){
+	//		return {0, {0,0}};
+	//	};
+
+	//	//printCells();
+	//	//auto reward_for_defense = calculateDefenseReward(playAs);
+
+	//	internal::cells[this_move.x][this_move.y] = playAs + 3;
+	//	internal::next_moves.push_back(this_move);
+
+	//	auto updateNextMoves = [](){
+	//		std::lock_guard<std::mutex> lock(gameStats::movesMutex);
+	//		gameStats::next_moves = internal::next_moves;
+	//	};
+	//	updateNextMoves();
+	//	if(depth == 0){
+	//		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	//		//for(auto& i: internal::next_moves){
+	//		//	std::cout << '(' << i.x << ',' << i.y << ") ";
+	//		//};
+	//		internal::next_moves.pop_back();
+	//		longlong result = calculateEvaluation(playAs, firstPlayer);
+	//		
+	//		//std::cout << " -- " << result << '\n';
+	//		internal::cells[this_move.x][this_move.y] = 0;
+	//		updateNextMoves();
+	//		return {result, this_move};
+	//	} else{
+	//		std::pair<longlong, sf::Vector2i> best_eval;
+	//		if(playAs == X){
+	//			best_eval = {INT64_MIN, {0, 0}};
+	//			std::pair<longlong, sf::Vector2i> t_eval;
+	//			auto cells_to_iterate = moves_to_iterate(O);
+	//			for(auto& i: cells_to_iterate){
+	//				t_eval = minimaxWithPruning(i, depth-1, O, firstPlayer, alpha, beta);
+	//				if(t_eval.first > best_eval.first) best_eval = t_eval;
+	//				alpha = std::max(best_eval.first, alpha);
+	//				if(alpha >= beta) break;
+	//			};
+	//		} else{
+	//			best_eval = {INT64_MAX, {0, 0}};
+	//			std::pair<longlong, sf::Vector2i> t_eval;
+	//			auto cells_to_iterate = moves_to_iterate(X);
+	//			for(auto& i: cells_to_iterate){
+	//				t_eval = minimaxWithPruning(i, depth-1, X, firstPlayer, alpha, beta);
+	//				if(t_eval.first < best_eval.first) best_eval = t_eval;
+	//				beta = std::min(best_eval.first, beta);
+	//				if(alpha >= beta) break;
+	//			};
+	//		};
+	//		internal::next_moves.pop_back();
+	//		internal::cells[this_move.x][this_move.y] = 0;
+	//		updateNextMoves();
+	//		return best_eval;
+	//	};
+
+	//};
+
+	//old minimax function
 	std::pair<longlong, sf::Vector2i> minimaxWithPruning(
 		sf::Vector2i this_move,
 		char depth,
@@ -376,7 +443,7 @@ namespace algo {
 		updateNextMoves();
 		if(depth == 0){
 			internal::next_moves.pop_back();
-			longlong result = (int)(0.5 * (reward_for_defense[this_move.x][this_move.y] + defense_reward));
+			longlong result = (int)(0.8 * (reward_for_defense[this_move.x][this_move.y] + defense_reward));
 			result += calculateEvaluation(playAs, firstPlayer);
 			internal::cells[this_move.x][this_move.y] = 0;
 			updateNextMoves();

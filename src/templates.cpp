@@ -178,7 +178,7 @@ void setupInputBox(bool init,
 	};
 
 	// set up label
-	label_text_obj.setString(label_text_string[DARK]);
+	label_text_obj.setString(label_text_string[LANG]);
 	label_text_obj.setCharacterSize(text_size);
 	label_text_obj.setFillColor(text_fill_color[DARK]);
 	label_text_obj.setOutlineColor(text_outline_color[DARK]);

@@ -1221,7 +1221,7 @@ namespace draw{
 				button_obj,
 				text_obj,
 				textures::text_button,
-				{{240, 550}, {300, 60}},
+				{{280, 550}, {200, 60}},
 				fonts::minecraft,
 				text_strings[gameStats::difficulty],
 				25,
@@ -1636,7 +1636,7 @@ namespace draw{
 
 				static std::vector<sf::Color> 
 					fill_colors = {sf::Color::Red, sf::Color::Red},
-					outline_colors = {sf::Color::Black, sf::Color::White};
+					outline_colors = {sf::Color::White, sf::Color::White};
 
 				setUpTextObj(
 					true,

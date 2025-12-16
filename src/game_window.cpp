@@ -1076,7 +1076,7 @@ namespace draw{
 					L"Xác nhận rằng bạn không lưu ván chơi. (A)"
 				};
 #define cast(x,y) static_cast<x> (y)
-				prompt_text_strings[0][46] = cast(wchar_t, (seconds_timer + cast(int, L'0')));
+				prompt_text_strings[0][44] = cast(wchar_t, (seconds_timer + cast(int, L'0')));
 				prompt_text_strings[1][39] = cast(wchar_t, (seconds_timer + cast(int, L'0')));
 #undef cast
 				setUpTextObj(
@@ -1200,13 +1200,13 @@ void drawForEachLoop(sf::RenderWindow& win, std::optional<sf::Event>& event){
 		draw::continueButton(win, event);
 	};
 
-	if(gameStats::current_stage == gameStats::SAVING){
-		draw::savePopup(win, event);
-	};
-
 	if(!gameStats::saveInfo.is_multiplayer && 
 		(gameStats::moves.size() + gameStats::saveInfo.first_turn + gameStats::saveInfo.playerAs) % 2 == 1){
 		draw::waitingMachineResponsePopup(win);
+	};
+
+	if(gameStats::current_stage == gameStats::SAVING){
+		draw::savePopup(win, event);
 	};
 
 	draw::exitButton(win, event);
