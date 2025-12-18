@@ -820,7 +820,7 @@ namespace draw{
 						outline_thickness,
 						20,
 						{0.5, 0.5},
-						{600, static_cast<float> (800 + 50 * i)},
+						{960, static_cast<float> (560 + 50 * i)},
 						warning_strings[idx[i]]
 					);
 					win.draw(warning_text_obj);
@@ -1566,7 +1566,7 @@ namespace draw{
 
 		};
 
-#define WARNING_SHOW_TIME 20000
+#define WARNING_SHOW_TIME 10000
 #define FLASHING_TIME 500
 		void showInputWarning(
 			sf::RenderWindow& win, 

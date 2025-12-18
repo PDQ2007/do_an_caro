@@ -1,7 +1,14 @@
-Untitled_save
 1
 Unnamed_X
 Unnamed_O
 0
-0 0
 0
+0 0
+7
+8 10
+8 8
+8 5
+10 4
+11 5
+11 7
+11 9

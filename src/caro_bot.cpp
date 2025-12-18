@@ -3,8 +3,6 @@
 
 #include "config.h"
 
-std::ofstream f("log.txt");
-
 typedef long long longlong;
 
 namespace { //<= START AMONYMOUS NAMESPACE
@@ -53,26 +51,6 @@ namespace internal {
 			std::lock_guard<std::mutex> lock(gameStats::movesMutex);
 			gameStats::next_moves = internal::next_moves;
 		};
-	};
-};
-
-void printCells(){
-	f << "\n------------------PRINT CELLS-------------\n";
-	for(auto& i: internal::cells){
-		for(auto& j: i){
-			f << j << ' ';
-		};
-		f << '\n';
-	};
-};
-
-void printDefense(std::vector<std::vector<longlong> >& reward_for_defense){
-	f << "\n------------------PRINT DEFENSE-------------\n";
-	for(auto& i: reward_for_defense){
-		for(auto& j: i){
-			f << j << ' ';
-		};
-		f << '\n';
 	};
 };
 
@@ -273,8 +251,6 @@ namespace algo {
 			checkDirection(i.x, i.y, 0, 1);
 			checkDirection(i.x, i.y, 1, 0);
 		};
-
-		printDefense(reward_for_defense);
 
 		return reward_for_defense;
 

@@ -21,11 +21,12 @@ void loadGame(
 ){
 	return_message = L"success";
 	std::ifstream fi(package.load_game_from);
-	fi >> package.save_name;
+	package.save_name = package.load_game_from.stem().string();
 	fi >> package.is_multiplayer;
 	fi >> package.playerX_name;
 	fi >> package.playerO_name;
 	fi >> package.first_turn;
+	fi >> package.playerAs;
 	fi >> x_score >> y_score;
 	unsigned int n;
 	unsigned short x, y;
@@ -74,11 +75,11 @@ void saveGame(
 	} else{
 		f.open(saveInfo.load_game_from);
 	};
-	f << saveInfo.save_name << '\n';
 	f << saveInfo.is_multiplayer << '\n';
 	f << saveInfo.playerX_name << '\n';
 	f << saveInfo.playerO_name << '\n';
 	f << saveInfo.first_turn << '\n';
+	f << saveInfo.playerAs << '\n';
 	f << x_score << ' ' << o_score << '\n';
 	f << moves.size() << '\n';
 	for(auto& i: moves){

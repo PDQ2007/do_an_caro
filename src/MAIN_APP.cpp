@@ -51,10 +51,6 @@ int main(){
 				drawSettingsScreen(win);
 				previous_screen = 4;
 				break;
-			case 5:
-				drawADifferentWindow(win);
-				previous_screen = 5;
-				break;
 		};
 	};
 };

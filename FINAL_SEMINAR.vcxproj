@@ -14,7 +14,6 @@
     <ClCompile Include="src\caro_bot.cpp" />
     <ClCompile Include="src\caro_bot.h" />
     <ClCompile Include="src\config.cpp" />
-    <ClCompile Include="src\different_window.cpp" />
     <ClCompile Include="src\game_window.cpp" />
     <ClCompile Include="src\MAIN_APP.cpp" />
     <ClCompile Include="src\menu_window.cpp" />
@@ -25,7 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\config.h" />
-    <ClInclude Include="src\different_window.h" />
     <ClInclude Include="src\game_window.h" />
     <ClInclude Include="src\menu_window.h" />
     <ClInclude Include="src\prepare_window.h" />

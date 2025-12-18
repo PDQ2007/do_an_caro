@@ -186,13 +186,13 @@ namespace events{
 
 					return false;
 				};
-				saveGame(
-					gameStats::saveInfo,
-					gameStats::x_score,
-					gameStats::o_score,
-					gameStats::moves
-				);
 			};
+			saveGame(
+				gameStats::saveInfo,
+				gameStats::x_score,
+				gameStats::o_score,
+				gameStats::moves
+			);
 		} else{
 			saveGame(
 				gameStats::saveInfo,
@@ -932,7 +932,6 @@ namespace draw{
 				);
 				win.draw(button_obj);
 				win.draw(text_obj);
-
 
 				static bool ignore_repeated_events = false;
 				if(isEvent && !gameStats::saveInfo.save_name.empty()){
