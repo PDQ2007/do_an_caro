@@ -31,7 +31,6 @@ namespace gameStats {
 #include "process.h"
 #include "caro_bot.h"
 #include "game_window.h"
-#include "different_window.h"
 #include "settings_window.h"
 #include "prepare_window.h"
 
