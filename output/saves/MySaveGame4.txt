@@ -1,7 +1,0 @@
-MySaveGame4
-1
-PlayerOne
-PlayerTwo
-0
-7 5
-0
